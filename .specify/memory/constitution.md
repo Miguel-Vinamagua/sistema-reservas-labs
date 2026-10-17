@@ -1,50 +1,52 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Version change: uninitialized template → 1.0.0 (initial constitution)
+- Modified principles: previously undefined principle 1 → I. Specification-First;
+  previously undefined principle 2 → II. Test-Driven Development;
+  previously undefined principle 3 → III. Backend Business-Rule Enforcement;
+  previously undefined principle 4 → IV. GitHub Flow and Peer Review;
+  previously undefined principle 5 → V. Conventional Commits.
+- Added principles: VI. Continuous Integration Quality Gate;
+  VII. Secret and Configuration Hygiene; VIII. Simplicity and Spanish Documentation.
+- Added sections: Technology and Security Constraints; Development Workflow.
+- Removed sections: None.
+- Follow-up TODO: Confirm the original ratification date.
+-->
+# Constitución del Sistema de reservas de laboratorios — UTMACH
 
-## Core Principles
+## Principios fundamentales
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Especificación primero
+Toda funcionalidad y todo cambio de comportamiento DEBE comenzar con una especificación escrita que defina su propósito, requisitos y criterios de aceptación antes de implementarse.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Desarrollo guiado por pruebas (INNEGOCIABLE)
+Las pruebas DEBEN escribirse antes del código de producción, siguiendo el ciclo Rojo-Verde-Refactorizar. Las pruebas del backend DEBEN usar Jest y Supertest, y el comportamiento relevante del frontend también DEBE tener pruebas.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Reglas de negocio en el backend
+Las reglas de negocio DEBEN aplicarse en el backend y estar cubiertas por pruebas. En particular, el backend DEBE rechazar reservas solapadas para el mismo laboratorio y periodo. La validación del frontend PUEDE mejorar la experiencia, pero NO DEBE reemplazar la del servidor.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. GitHub Flow y revisión por pares
+El trabajo DEBE realizarse en ramas cortas asociadas a una tarea e integrarse mediante Pull Request. Un compañero DEBE revisar y aprobar cada Pull Request antes de fusionarlo.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Commits convencionales
+Los mensajes de commit DEBEN usar los prefijos `feat`, `fix`, `docs`, `test` o `chore`, seguidos de una descripción concisa.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+### VI. Puerta de calidad con integración continua
+El pipeline de GitHub Actions DEBE pasar antes de fusionar un Pull Request. Un pipeline que falla DEBE corregirse, no omitirse.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### VII. Higiene de secretos y configuración
+Los secretos y las cadenas de conexión a la base de datos NO DEBEN subirse al repositorio. Los valores específicos de cada entorno se proveen fuera del control de versiones; el repositorio solo PUEDE contener un archivo `.env.example` con valores de ejemplo sin secretos reales.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+### VIII. Simplicidad y documentación en español
+El código DEBE favorecer el diseño más simple que cumpla los requisitos especificados. La documentación del proyecto y la guía técnica dirigida a usuarios DEBEN estar escritas en español.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+## Restricciones de tecnología y seguridad
+La aplicación DEBE usar Angular en el frontend, Node.js con Express en el backend y MongoDB con Mongoose para la persistencia. El acceso a datos y las reglas de negocio DEBEN implementarse en el servidor; el frontend DEBE comunicarse con el backend mediante su API y no conectarse directamente a MongoDB.
 
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+## Flujo de desarrollo
+Cada tarea DEBE referenciar su especificación y criterios de aceptación. Los cambios DEBEN enviarse como Pull Requests enfocados desde ramas cortas, recibir aprobación de un compañero y pasar el pipeline de GitHub Actions antes de fusionarse. Quienes revisan DEBEN verificar la cobertura de la especificación, las pruebas de reglas del backend, la higiene de secretos y la documentación en español.
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+## Gobernanza
+Esta constitución rige las prácticas de desarrollo del proyecto y prevalece sobre convenciones informales. Las enmiendas DEBEN proponerse mediante un Pull Request que explique el motivo y el impacto. Cualquier excepción DEBE justificarse y aprobarse en el Pull Request correspondiente. El versionado es semántico: MAYOR para cambios incompatibles en principios o gobernanza, MENOR para principios nuevos o requisitos ampliados, y PARCHE para aclaraciones.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Versión**: 1.0.0 | **Ratificada**: 2026-10-17 | **Última enmienda**: 2026-10-17
