@@ -12,82 +12,41 @@ Sync Impact Report
 - Removed sections: None.
 - Follow-up TODO: Confirm the original ratification date.
 -->
-# Sistema de reservas de laboratorios — UTMACH Constitution
+# Constitución del Sistema de reservas de laboratorios — UTMACH
 
-## Core Principles
+## Principios fundamentales
 
-### I. Specification-First
-Every feature and behavioral change MUST begin with a written specification that
-defines its purpose, requirements, and acceptance criteria before implementation.
-This keeps implementation aligned with the needs of laboratory users and reviewers.
+### I. Especificación primero
+Toda funcionalidad y todo cambio de comportamiento DEBE comenzar con una especificación escrita que defina su propósito, requisitos y criterios de aceptación antes de implementarse.
 
-### II. Test-Driven Development (NON-NEGOTIABLE)
-Tests MUST be written before production code, and development MUST follow the
-Red-Green-Refactor cycle. Backend tests MUST use Jest and Supertest; the relevant
-frontend behavior MUST also be covered by tests. Tests are the executable expression
-of expected behavior and guard against regressions.
+### II. Desarrollo guiado por pruebas (INNEGOCIABLE)
+Las pruebas DEBEN escribirse antes del código de producción, siguiendo el ciclo Rojo-Verde-Refactorizar. Las pruebas del backend DEBEN usar Jest y Supertest, y el comportamiento relevante del frontend también DEBE tener pruebas.
 
-### III. Backend Business-Rule Enforcement
-Business rules MUST be enforced in the backend and covered by tests. In particular,
-the backend MUST reject overlapping reservations for the same laboratory and time
-period. Frontend validation MAY improve feedback, but MUST NOT replace server-side
-validation because clients cannot be trusted to enforce shared rules.
+### III. Reglas de negocio en el backend
+Las reglas de negocio DEBEN aplicarse en el backend y estar cubiertas por pruebas. En particular, el backend DEBE rechazar reservas solapadas para el mismo laboratorio y periodo. La validación del frontend PUEDE mejorar la experiencia, pero NO DEBE reemplazar la del servidor.
 
-### IV. GitHub Flow and Peer Review
-Work MUST be developed on short-lived branches scoped to a task and integrated
-through a Pull Request. A teammate MUST review and approve each Pull Request before
-it is merged. This keeps changes focused and provides an independent quality check.
+### IV. GitHub Flow y revisión por pares
+El trabajo DEBE realizarse en ramas cortas asociadas a una tarea e integrarse mediante Pull Request. Un compañero DEBE revisar y aprobar cada Pull Request antes de fusionarlo.
 
-### V. Conventional Commits
-Commit messages MUST use the conventional type prefixes `feat`, `fix`, `docs`,
-`test`, or `chore`, followed by a concise description. Consistent commit history
-makes changes easier to review, understand, and trace.
+### V. Commits convencionales
+Los mensajes de commit DEBEN usar los prefijos `feat`, `fix`, `docs`, `test` o `chore`, seguidos de una descripción concisa.
 
-### VI. Continuous Integration Quality Gate
-The GitHub Actions pipeline MUST pass before a Pull Request is merged. A failing
-pipeline MUST be resolved rather than bypassed, so automated checks remain a
-reliable integration gate.
+### VI. Puerta de calidad con integración continua
+El pipeline de GitHub Actions DEBE pasar antes de fusionar un Pull Request. Un pipeline que falla DEBE corregirse, no omitirse.
 
-### VII. Secret and Configuration Hygiene
-Secrets and database connection strings MUST NOT be committed to the repository.
-Environment-specific values MUST be supplied outside version control; the
-repository MAY contain only a `.env.example` with placeholders and no real secrets.
-This reduces the risk of credential exposure.
+### VII. Higiene de secretos y configuración
+Los secretos y las cadenas de conexión a la base de datos NO DEBEN subirse al repositorio. Los valores específicos de cada entorno se proveen fuera del control de versiones; el repositorio solo PUEDE contener un archivo `.env.example` con valores de ejemplo sin secretos reales.
 
-### VIII. Simplicity and Spanish Documentation
-Code MUST favor the simplest design that satisfies the specified requirements.
-Project documentation and user-facing technical guidance MUST be written in Spanish.
-Simple, consistent code and documentation make the system easier for the UTMACH
-team to maintain.
+### VIII. Simplicidad y documentación en español
+El código DEBE favorecer el diseño más simple que cumpla los requisitos especificados. La documentación del proyecto y la guía técnica dirigida a usuarios DEBEN estar escritas en español.
 
-## Technology and Security Constraints
+## Restricciones de tecnología y seguridad
+La aplicación DEBE usar Angular en el frontend, Node.js con Express en el backend y MongoDB con Mongoose para la persistencia. El acceso a datos y las reglas de negocio DEBEN implementarse en el servidor; el frontend DEBE comunicarse con el backend mediante su API y no conectarse directamente a MongoDB.
 
-The application stack MUST use Angular for the frontend, Node.js with Express for
-the backend, and MongoDB with Mongoose for persistence. Data access and business
-rules MUST be implemented on the server; the frontend MUST communicate with the
-backend through its defined API rather than connecting directly to MongoDB.
+## Flujo de desarrollo
+Cada tarea DEBE referenciar su especificación y criterios de aceptación. Los cambios DEBEN enviarse como Pull Requests enfocados desde ramas cortas, recibir aprobación de un compañero y pasar el pipeline de GitHub Actions antes de fusionarse. Quienes revisan DEBEN verificar la cobertura de la especificación, las pruebas de reglas del backend, la higiene de secretos y la documentación en español.
 
-## Development Workflow
+## Gobernanza
+Esta constitución rige las prácticas de desarrollo del proyecto y prevalece sobre convenciones informales. Las enmiendas DEBEN proponerse mediante un Pull Request que explique el motivo y el impacto. Cualquier excepción DEBE justificarse y aprobarse en el Pull Request correspondiente. El versionado es semántico: MAYOR para cambios incompatibles en principios o gobernanza, MENOR para principios nuevos o requisitos ampliados, y PARCHE para aclaraciones.
 
-Each task MUST reference its written specification and acceptance criteria. Changes
-MUST be submitted as focused Pull Requests from short-lived task branches, receive
-approval from a teammate, and pass the GitHub Actions pipeline before merge.
-Contributors MUST include relevant automated tests and use the required conventional
-commit prefixes. Reviewers MUST verify specification coverage, backend rule tests,
-secret hygiene, and documentation in Spanish when applicable.
-
-## Governance
-
-This constitution governs project development practices and takes precedence over
-conflicting informal conventions. Amendments MUST be proposed and reviewed through
-a Pull Request that explains the rationale and impact. Project contributors MUST
-check applicable principles during implementation and Pull Request review; any
-exception MUST be explicitly justified and approved in the Pull Request.
-
-The constitution follows semantic versioning: MAJOR for incompatible changes to
-principles or governance, MINOR for new principles or materially expanded
-requirements, and PATCH for clarifications and non-semantic wording changes. The
-last-amended date MUST be updated whenever an amendment is accepted. Compliance is
-reviewed as part of Pull Request review and the GitHub Actions quality gate.
-
-**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): confirm original adoption date | **Last Amended**: 2026-10-17
+**Versión**: 1.0.0 | **Ratificada**: 2026-10-17 | **Última enmienda**: 2026-10-17
