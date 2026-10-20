@@ -6,14 +6,17 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
+    "seed": "node scripts/seed.js",
     "test": "jest --runInBand"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.9.5"
   },
   "devDependencies": {

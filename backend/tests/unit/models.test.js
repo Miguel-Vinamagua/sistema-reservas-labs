@@ -5,15 +5,26 @@ const Reserva = require('../../src/models/reserva.model');
 
 describe('Usuario model', () => {
   it('uses usuarios and requires a supported role', () => {
-    const missingRole = new Usuario({});
-    const invalidRole = new Usuario({ rol: 'invitado' });
+    const missingRole = new Usuario({
+      correo: 'test@universidad.edu',
+      passwordHash: 'hash'
+    });
+    const invalidRole = new Usuario({
+      correo: 'test@universidad.edu',
+      passwordHash: 'hash',
+      rol: 'invitado'
+    });
 
     expect(Usuario.collection.name).toBe('usuarios');
     expect(missingRole.validateSync().errors.rol).toBeDefined();
     expect(invalidRole.validateSync().errors.rol).toBeDefined();
 
     for (const rol of ['estudiante', 'docente', 'administrador']) {
-      expect(new Usuario({ rol }).validateSync()).toBeUndefined();
+      expect(new Usuario({
+        correo: 'test@universidad.edu',
+        passwordHash: 'hash',
+        rol
+      }).validateSync()).toBeUndefined();
     }
   });
 });

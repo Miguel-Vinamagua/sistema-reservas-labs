@@ -25,7 +25,7 @@
 - [X] T006 Crear la aplicación Express importable sin abrir un puerto de escucha en `backend/src/app.js`
 - [X] T007 Crear el arranque del servidor para que se conecte a MongoDB antes de empezar a escuchar y gestione los errores de inicio en `backend/src/server.js`
 - [ ] T008 [P] Implementar la validación de solicitudes y respuestas JSON de error consistentes para `400`, `401`, `403`, `404`, `409` y `500` en `backend/src/middleware/error-handler.js`
-- [ ] T009 [P] Implementar middleware de autorización que lea el principal autenticado y su rol del contexto de solicitud confiable, nunca de campos del cuerpo, en `backend/src/middleware/authorization.js`
+- [X] T009 [P] Implementar middleware de autorización que lea el principal autenticado y su rol del contexto de solicitud confiable, nunca de campos del cuerpo, en `backend/src/middleware/authorization.js`
 - [ ] T010 [P] Crear el cliente compartido de API de Angular y el servicio de presentación de errores en `frontend/src/app/core/api/` y `frontend/src/app/core/errors/`
 - [X] T011 Configurar Jest, Supertest, el aislamiento de la base de datos de pruebas y la limpieza posterior para usar la base `reservas_test` en `backend/jest.config.js` y `backend/tests/setup.js`
 - [ ] T012 Configurar GitHub Actions para iniciar MongoDB como replica set de un solo nodo, inicializarlo, establecer `MONGODB_URI` para `reservas_test` y ejecutar las comprobaciones del backend y del frontend en `.github/workflows/ci.yml`
@@ -115,6 +115,13 @@
 - [ ] T041 Verificar que las solicitudes y respuestas del frontend y backend coincidan con el contrato REST en `specs/001-reservas-laboratorios/api-contract.md`
 - [ ] T042 Ejecutar los escenarios de extremo a extremo de `specs/001-reservas-laboratorios/quickstart.md` contra el replica set `reservas_test`
 - [ ] T043 Ejecutar todas las pruebas backend con Jest/Supertest, las pruebas de Angular y el flujo de GitHub Actions; resolver los fallos sin omitir los controles de calidad
+
+## Autenticación y roles del backend
+
+- [X] T044 Escribir primero pruebas de integración para login, hash bcrypt, firma JWT y autorización por roles en `backend/tests/integration/auth.test.js`
+- [X] T045 Añadir correo y hash bcrypt al modelo Usuario e implementar `POST /api/auth/login` firmado mediante `JWT_SECRET` en `backend/src/models/usuario.model.js` y `backend/src/routes/auth.routes.js`
+- [X] T046 Implementar middleware de autenticación JWT y autorización por roles y montar la ruta de login en `backend/src/middleware/authorization.js` y `backend/src/app.js`
+- [X] T047 Añadir pruebas para aprovisionamiento idempotente de usuarios y un comando seed que valide roles, almacene hashes bcrypt y no sobrescriba cuentas existentes en `backend/scripts/seed.js`
 
 ## Dependencias y orden de ejecución
 

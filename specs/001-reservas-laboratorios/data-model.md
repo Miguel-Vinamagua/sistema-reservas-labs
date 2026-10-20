@@ -4,14 +4,16 @@ Los modelos Mongoose definen las colecciones; no se usan migraciones. `ObjectId`
 
 ## Usuario (`usuarios`)
 
-Representa a un principal conocido por la integración de identidad institucional. La integración aprovisiona o resuelve el usuario; esta funcionalidad no crea credenciales.
+Representa a una persona autorizada a usar el sistema de reservas. El inicio de sesión valida las credenciales almacenadas y emite el principal autenticado.
 
 | Campo | Tipo | Reglas |
 |---|---|---|
-| `_id` | ObjectId | Identificador que se correlaciona con la identidad institucional. |
+| `_id` | ObjectId | Identificador generado por MongoDB. |
+| `correo` | string | Requerido, único, normalizado a minúsculas y sin espacios externos. |
+| `passwordHash` | string | Requerido; hash bcrypt, nunca la contraseña en texto claro; excluido de consultas por defecto. |
 | `rol` | string | Requerido; uno de `estudiante`, `docente`, `administrador`. |
 
-No almacenar contraseñas ni aceptar el rol desde el cuerpo de una solicitud. La identidad y el rol usados en operaciones provienen de contexto de autenticación confiable del servidor.
+El rol se asigna mediante aprovisionamiento confiable del servidor; el login no acepta ni modifica roles. Los tokens JWT firmados por el servidor contienen el ID y rol autenticados y tienen duración limitada.
 
 ## Laboratorio (`laboratorios`)
 
