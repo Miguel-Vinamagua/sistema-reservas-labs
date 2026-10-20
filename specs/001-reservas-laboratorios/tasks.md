@@ -12,7 +12,7 @@
 
 **Propósito**: Inicializar los dos proyectos de aplicación y la estructura de CI.
 
-- [ ] T001 Crear el paquete del backend con Node.js 20 y las carpetas de código fuente y pruebas en `backend/package.json` y `backend/src/`
+- [X] T001 Crear el paquete del backend con Node.js 20 y las carpetas de código fuente y pruebas en `backend/package.json` y `backend/src/`
 - [ ] T002 [P] Preparar la aplicación Angular con componentes standalone en `frontend/` y ubicar su código fuente en `frontend/src/app/`
 - [ ] T003 [P] Añadir ejemplos no secretos de variables de entorno para `MONGODB_URI` y el origen de la API en `backend/.env.example` y `frontend/.env.example`
 - [ ] T004 [P] Crear la estructura inicial del flujo de GitHub Actions para validar el backend y el frontend en `.github/workflows/ci.yml`
@@ -21,13 +21,13 @@
 
 **Propósito**: Preparar la base de datos compartida, el ciclo de vida de la aplicación, el principal autenticado y la infraestructura de pruebas de CI requeridos por todas las historias.
 
-- [ ] T005 Configurar la conexión de Mongoose usando únicamente `MONGODB_URI` y hacer que el inicio falle con un error claro si falta la variable en `backend/src/config/database.js`
-- [ ] T006 Crear la aplicación Express importable sin abrir un puerto de escucha en `backend/src/app.js`
-- [ ] T007 Crear el arranque del servidor para que se conecte a MongoDB antes de empezar a escuchar y gestione los errores de inicio en `backend/src/server.js`
+- [X] T005 Configurar la conexión de Mongoose usando únicamente `MONGODB_URI` y hacer que el inicio falle con un error claro si falta la variable en `backend/src/config/database.js`
+- [X] T006 Crear la aplicación Express importable sin abrir un puerto de escucha en `backend/src/app.js`
+- [X] T007 Crear el arranque del servidor para que se conecte a MongoDB antes de empezar a escuchar y gestione los errores de inicio en `backend/src/server.js`
 - [ ] T008 [P] Implementar la validación de solicitudes y respuestas JSON de error consistentes para `400`, `401`, `403`, `404`, `409` y `500` en `backend/src/middleware/error-handler.js`
 - [ ] T009 [P] Implementar middleware de autorización que lea el principal autenticado y su rol del contexto de solicitud confiable, nunca de campos del cuerpo, en `backend/src/middleware/authorization.js`
 - [ ] T010 [P] Crear el cliente compartido de API de Angular y el servicio de presentación de errores en `frontend/src/app/core/api/` y `frontend/src/app/core/errors/`
-- [ ] T011 Configurar Jest, Supertest, el aislamiento de la base de datos de pruebas y la limpieza posterior para usar la base `reservas_test` en `backend/jest.config.js` y `backend/tests/setup.js`
+- [X] T011 Configurar Jest, Supertest, el aislamiento de la base de datos de pruebas y la limpieza posterior para usar la base `reservas_test` en `backend/jest.config.js` y `backend/tests/setup.js`
 - [ ] T012 Configurar GitHub Actions para iniciar MongoDB como replica set de un solo nodo, inicializarlo, establecer `MONGODB_URI` para `reservas_test` y ejecutar las comprobaciones del backend y del frontend en `.github/workflows/ci.yml`
 
 **Punto de control**: Ambas aplicaciones arrancan de forma independiente; Supertest puede importar la aplicación Express sin abrir un puerto y CI dispone de MongoDB compatible con transacciones.
@@ -49,10 +49,10 @@
 
 ### Implementación de la historia de usuario 1
 
-- [ ] T017 [P] [US1] Crear el modelo Usuario en la colección `usuarios` con el enum de rol obligatorio `estudiante`, `docente`, `administrador` en `backend/src/models/usuario.model.js`
-- [ ] T018 [P] [US1] Crear el modelo Laboratorio con `nombre` y `ubicacion` obligatorios y no vacíos, `capacidad` entero positivo, `activo` con valor predeterminado `true` y `reservationRevision` con valor predeterminado `0` en `backend/src/models/laboratorio.model.js`
-- [ ] T019 [P] [US1] Crear el modelo Reserva con referencias ObjectId obligatorias `laboratorio` y `usuario`, campos Date obligatorios `inicio` y `fin` donde `fin > inicio`, y enum `estado` `activa` o `cancelada` con valor predeterminado `activa` en `backend/src/models/reserva.model.js`
-- [ ] T020 [US1] Añadir el índice compuesto `{ laboratorio: 1, inicio: 1, fin: 1 }` al modelo Reserva en `backend/src/models/reserva.model.js`
+- [X] T017 [P] [US1] Crear el modelo Usuario en la colección `usuarios` con el enum de rol obligatorio `estudiante`, `docente`, `administrador` en `backend/src/models/usuario.model.js`
+- [X] T018 [P] [US1] Crear el modelo Laboratorio con `nombre` y `ubicacion` obligatorios y no vacíos, `capacidad` entero positivo, `activo` con valor predeterminado `true` y `reservationRevision` con valor predeterminado `0` en `backend/src/models/laboratorio.model.js`
+- [X] T019 [P] [US1] Crear el modelo Reserva con referencias ObjectId obligatorias `laboratorio` y `usuario`, campos Date obligatorios `inicio` y `fin` donde `fin > inicio`, y enum `estado` `activa` o `cancelada` con valor predeterminado `activa` en `backend/src/models/reserva.model.js`
+- [X] T020 [US1] Añadir el índice compuesto `{ laboratorio: 1, inicio: 1, fin: 1 }` al modelo Reserva en `backend/src/models/reserva.model.js`
 - [ ] T021 [US1] Implementar la consulta de laboratorios activos y las comprobaciones de existencia de laboratorios en `backend/src/services/laboratorio.service.js`
 - [ ] T022 [US1] Implementar la creación de reservas con validación de fecha local de la universidad, búsqueda estricta de intervalos superpuestos, escritura de control del laboratorio activo e inserción de la reserva dentro de una transacción Mongoose reintentable en `backend/src/services/reserva.service.js`
 - [ ] T023 [US1] Implementar `GET /api/laboratorios` y `POST /api/reservas` con acceso autenticado para estudiantes y docentes en `backend/src/routes/laboratorios.routes.js` y `backend/src/routes/reservas.routes.js`
