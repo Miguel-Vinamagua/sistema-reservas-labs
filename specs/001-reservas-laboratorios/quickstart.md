@@ -4,14 +4,15 @@
 
 - Node.js 20.
 - MongoDB ejecutándose como replica set para que estén disponibles las transacciones.
-- Una identidad institucional de prueba con usuario estudiante/docente y otra con rol administrador, provistas por la integración de autenticación.
+- Usuarios de prueba con correo, contraseña y roles aprovisionados en la base de pruebas: estudiante/docente y administrador.
 - Configuración de dependencias del backend y frontend implementada según [plan.md](./plan.md).
 
 ## Configuración
 
 1. Configura `MONGODB_URI` fuera del control de versiones. En pruebas debe apuntar a la base separada `reservas_test` y a un replica set.
-2. Configura la integración de autenticación para que el backend pueda validar al principal y rol de cada petición.
+2. Configura `JWT_SECRET` fuera del control de versiones con un secreto aleatorio fuerte. No reutilices secretos de producción en pruebas.
 3. Asegura que la base de prueba no contenga datos compartidos o de producción.
+4. Para aprovisionar usuarios iniciales, configura `SEED_USERS` con un arreglo JSON de objetos `{ "correo", "password", "rol" }` mediante el gestor de secretos o entorno seguro y ejecuta `npm run seed` desde `backend/`. Los roles permitidos son `estudiante`, `docente` y `administrador`. El seed crea solo usuarios nuevos y nunca sobrescribe las credenciales ni roles existentes.
 
 Ejemplo de URI de prueba (ajusta host y replica set al entorno):
 
@@ -35,5 +36,6 @@ mongodb://127.0.0.1:27017/reservas_test?replicaSet=rs0
 - Consultar reservas con dos usuarios y comprobar que cada uno solo ve las propias.
 - Cancelar una reserva propia y comprobar que deja de bloquear el horario; rechazar cancelación por usuario distinto.
 - Crear, editar y desactivar laboratorios con administrador; rechazar las mismas operaciones a estudiantes/docentes y rechazar nuevas reservas al laboratorio desactivado.
+- Iniciar sesión con `POST /api/auth/login`, usar el JWT como `Authorization: Bearer <token>` y rechazar credenciales inválidas o roles no autorizados.
 
 Consulta [api-contract.md](./api-contract.md) para formas de petición/respuesta y [data-model.md](./data-model.md) para las reglas de persistencia.

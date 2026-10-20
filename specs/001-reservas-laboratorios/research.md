@@ -19,15 +19,15 @@
 - [MongoDB: Transaction Production Considerations](https://www.mongodb.com/docs/manual/core/transactions-production-consideration/#in-progress-transactions-and-write-conflicts)
 - [Mongoose: Transactions](https://mongoosejs.com/docs/transactions.html)
 
-## Decision: Existing university identity integration
+## Decision: Local credentials with signed JWTs
 
-**Decision**: The API consumes the authenticated principal and role from an existing university authentication integration. It maps that principal to a `usuarios` record; it does not add login or public account registration.
+**Decision**: The API authenticates users using a normalized unique email and bcrypt password hash in `usuarios`. Successful login returns a short-lived JWT signed with `JWT_SECRET`; authenticated middleware verifies the token and exposes its trusted ID and role. Public account registration remains out of scope.
 
-**Rationale**: The active specification assumes users already have an identity and a recognizable role, and the plan clarification selected the existing identity system. Keeping identity issuance outside the feature avoids duplicating university authentication while still allowing server-side ownership and administrator checks.
+**Rationale**: Signed tokens provide a verifiable request principal without trusting client-supplied IDs or roles, while bcrypt prevents storage of clear-text passwords. Role assignment remains a trusted provisioning responsibility.
 
 **Alternatives considered**:
-- Implement local login and account registration: not selected; the feature assumes an existing identity system.
-- Trust user IDs or roles sent in request bodies: rejected because callers could impersonate another user or administrator.
+- Accept identity from request bodies: rejected because callers could impersonate another user or administrator.
+- Add public account registration: rejected; users and roles are provisioned by a trusted process.
 
 ## Decision: MongoDB service for tests
 

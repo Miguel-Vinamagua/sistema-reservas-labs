@@ -90,6 +90,8 @@ El administrador mantiene el catálogo de laboratorios, creando nuevos espacios,
 - **FR-014**: El sistema MUST impedir que usuarios que no sean administradores creen, editen o desactiven laboratorios.
 - **FR-015**: El sistema MUST validar las reglas de reserva y los permisos al procesar cada operación, sin depender únicamente de avisos o validaciones presentados al usuario.
 - **FR-016**: Los pagos, las notificaciones por correo y los reportes MUST quedar fuera del alcance de esta funcionalidad.
+- **FR-017**: El sistema MUST permitir iniciar sesión mediante correo y contraseña, almacenar contraseñas únicamente como hashes bcrypt y emitir un JWT firmado de duración limitada.
+- **FR-018**: El sistema MUST autenticar los JWT y autorizar operaciones según el rol asignado en el servidor; MUST ignorar cualquier rol enviado en una solicitud de login.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -109,7 +111,8 @@ El administrador mantiene el catálogo de laboratorios, creando nuevos espacios,
 
 ## Assumptions
 
-- Los usuarios ya cuentan con una identidad y un rol reconocibles por el sistema; el registro de cuentas y la asignación de roles no forman parte de esta funcionalidad.
+- Los usuarios son aprovisionados con correo, contraseña y rol por un proceso confiable del servidor; el registro público y la asignación de roles por los usuarios no forman parte de esta funcionalidad.
+- El secreto de firma JWT se proporciona mediante `JWT_SECRET` fuera del control de versiones y los tokens tienen una vigencia limitada.
 - La fecha actual se interpreta según la fecha local de la universidad. No se aceptan fechas anteriores, pero para la fecha actual no se añade una regla que exija que la hora de inicio sea futura.
 - Los horarios se interpretan en la hora local de la universidad y como intervalos donde el inicio se incluye y el fin se excluye; así, una reserva puede comenzar cuando termina otra.
 - Los laboratorios tienen capacidad expresada como un entero positivo y una ubicación no vacía.

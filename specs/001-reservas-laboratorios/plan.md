@@ -27,13 +27,13 @@ Build a university laboratory booking web application with an Angular standalone
 **Constraints**:
 - Read the database connection string only from `MONGODB_URI`; do not commit secrets.
 - Keep Express application construction in `backend/src/app.js` and process startup/database connection in `backend/src/server.js`, allowing Supertest to import the app without starting a listener.
-- Trust identity and role supplied by the university's existing authentication integration; this feature does not implement login or public account registration.
+- Authenticate local users with bcrypt-hashed passwords and short-lived JWTs signed using the environment-provided `JWT_SECRET`; keep role assignment server-controlled and do not implement public account registration.
 - Enforce reservation overlap with active reservations for the same laboratory where existing `inicio < nuevoFin` and existing `fin > nuevoInicio`.
 - Use a compound reservation index on `laboratorio`, `inicio`, and `fin`; this index supports the conflict lookup but does not itself prevent concurrent overlaps.
 - CI and any transaction-backed test database must support MongoDB transactions (replica set); a standalone MongoDB service is insufficient.
 - Store reservation instants as BSON dates and accept/return ISO 8601 timestamps with offsets at the API boundary. Interpret user-entered dates and times in the university's local time zone, as stated in the specification.
 
-**Scale/Scope**: Three collections and the reservation/catalog flows in the specification. No payments, email notifications, reports, login/registration, or reservation rescheduling.
+**Scale/Scope**: Three collections and the authentication, reservation, and catalog flows in the specification. No public account registration, payments, email notifications, reports, or reservation rescheduling.
 
 ## Constitution Check
 

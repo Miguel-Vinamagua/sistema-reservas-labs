@@ -1,8 +1,42 @@
 # Contrato REST: Sistema de reservas de laboratorios
 
-Base path: `/api`. Los endpoints requieren un principal autenticado por la integración institucional. La API obtiene el ID y el rol del contexto de autenticación validado por el servidor; nunca los toma como autoridad desde el cuerpo de la solicitud.
+Base path: `/api`. El login emite un JWT firmado; los endpoints protegidos reciben `Authorization: Bearer <token>`. El ID y el rol provienen de las credenciales verificadas y del token firmado; nunca se aceptan como autoridad desde el cuerpo de la solicitud.
 
 Los ejemplos de campos `inicio` y `fin` usan cadenas ISO 8601 con offset. Las respuestas no incluyen secretos ni datos personales innecesarios.
+
+## Autenticación
+
+### `POST /api/auth/login`
+
+Valida el correo y la contraseña del usuario. Las contraseñas se almacenan usando bcrypt. El rol de la respuesta se obtiene del usuario almacenado y no del cuerpo de la solicitud.
+
+**Request**
+
+```json
+{
+  "correo": "estudiante@universidad.edu",
+  "password": "contraseña"
+}
+```
+
+**200**
+
+```json
+{
+  "data": {
+    "token": "<jwt>",
+    "user": {
+      "id": "66a000000000000000000001",
+      "correo": "estudiante@universidad.edu",
+      "rol": "estudiante"
+    }
+  }
+}
+```
+
+El JWT vence después de una hora. Su firma requiere `JWT_SECRET`, configurada fuera del control de versiones.
+
+**Errores**: `400` si faltan correo o contraseña; `401` para credenciales inválidas; `500` si falta configuración de firma o ocurre un error del servidor.
 
 ## Laboratorios
 
