@@ -53,10 +53,10 @@
 - [X] T018 [P] [US1] Crear el modelo Laboratorio con `nombre` y `ubicacion` obligatorios y no vacíos, `capacidad` entero positivo, `activo` con valor predeterminado `true` y `reservationRevision` con valor predeterminado `0` en `backend/src/models/laboratorio.model.js`
 - [X] T019 [P] [US1] Crear el modelo Reserva con referencias ObjectId obligatorias `laboratorio` y `usuario`, campos Date obligatorios `inicio` y `fin` donde `fin > inicio`, y enum `estado` `activa` o `cancelada` con valor predeterminado `activa` en `backend/src/models/reserva.model.js`
 - [X] T020 [US1] Añadir el índice compuesto `{ laboratorio: 1, inicio: 1, fin: 1 }` al modelo Reserva en `backend/src/models/reserva.model.js`
-- [ ] T021 [US1] Implementar la consulta de laboratorios activos y las comprobaciones de existencia de laboratorios en `backend/src/services/laboratorio.service.js`
-- [ ] T022 [US1] Implementar la creación de reservas con validación de fecha local de la universidad, búsqueda estricta de intervalos superpuestos, escritura de control del laboratorio activo e inserción de la reserva dentro de una transacción Mongoose reintentable en `backend/src/services/reserva.service.js`
-- [ ] T023 [US1] Implementar `GET /api/laboratorios` y `POST /api/reservas` con acceso autenticado para estudiantes y docentes en `backend/src/routes/laboratorios.routes.js` y `backend/src/routes/reservas.routes.js`
-- [ ] T024 [US1] Montar las rutas `/api/laboratorios` y `/api/reservas` en la aplicación Express en `backend/src/app.js`
+- [X] T021 [US1] Implementar la consulta de laboratorios activos y las comprobaciones de existencia de laboratorios en `backend/src/services/laboratorio.service.js`
+- [X] T022 [US1] Implementar la creación de reservas con validación de fecha local de la universidad, búsqueda estricta de intervalos superpuestos, escritura de control del laboratorio activo e inserción de la reserva dentro de una transacción Mongoose reintentable en `backend/src/services/reserva.service.js`
+- [X] T023 [US1] Implementar `GET /api/laboratorios` y `POST /api/reservas` con acceso autenticado para estudiantes y docentes en `backend/src/routes/laboratorios.routes.js` y `backend/src/routes/reservas.routes.js`
+- [X] T024 [US1] Montar las rutas `/api/laboratorios` y `/api/reservas` en la aplicación Express en `backend/src/app.js`
 - [ ] T025 [US1] Crear el catálogo de laboratorios standalone y mostrar el nombre, la capacidad y la ubicación de cada laboratorio activo en `frontend/src/app/features/laboratorios/`
 - [ ] T026 [US1] Crear el formulario de reserva standalone que envíe `laboratorioId`, `inicio` y `fin` a `POST /api/reservas` y muestre errores de validación o conflicto en `frontend/src/app/features/reservas/`
 
