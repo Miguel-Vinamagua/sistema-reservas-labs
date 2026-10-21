@@ -57,7 +57,7 @@
 - [X] T022 [US1] Implementar la creación de reservas con validación de fecha local de la universidad, búsqueda estricta de intervalos superpuestos, escritura de control del laboratorio activo e inserción de la reserva dentro de una transacción Mongoose reintentable en `backend/src/services/reserva.service.js`
 - [X] T023 [US1] Implementar `GET /api/laboratorios` y `POST /api/reservas` con acceso autenticado para estudiantes y docentes en `backend/src/routes/laboratorios.routes.js` y `backend/src/routes/reservas.routes.js`
 - [X] T024 [US1] Montar las rutas `/api/laboratorios` y `/api/reservas` en la aplicación Express en `backend/src/app.js`
-- [ ] T025 [US1] Crear el catálogo de laboratorios standalone y mostrar el nombre, la capacidad y la ubicación de cada laboratorio activo en `frontend/src/app/features/laboratorios/`
+- [X] T025 [US1] Crear el catálogo de laboratorios standalone y mostrar el nombre, la capacidad y la ubicación de cada laboratorio activo en `frontend/src/app/features/laboratorios/`
 - [ ] T026 [US1] Crear el formulario de reserva standalone que envíe `laboratorioId`, `inicio` y `fin` a `POST /api/reservas` y muestre errores de validación o conflicto en `frontend/src/app/features/reservas/`
 
 **Punto de control**: La historia de usuario 1 funciona de extremo a extremo, incluido el rechazo seguro ante reservas superpuestas simultáneas mediante transacciones.
