@@ -61,4 +61,26 @@ describe('AuthService', () => {
     expect(tokenStorage.getToken()).toBeNull();
     expect(auth.isAuthenticated()).toBeFalse();
   });
+
+  it('reads the administrator role from the stored token for client-side controls', () => {
+    const payload = btoa(JSON.stringify({ rol: 'administrador' }))
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_');
+    tokenStorage.setToken(`header.${payload}.signature`);
+
+    expect(auth.getRole()).toBe('administrador');
+    expect(auth.isAdministrator()).toBeTrue();
+  });
+
+  it('fails closed when the stored token has an unknown role', () => {
+    const payload = btoa(JSON.stringify({ rol: 'superadmin' }))
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_');
+    tokenStorage.setToken(`header.${payload}.signature`);
+
+    expect(auth.getRole()).toBeNull();
+    expect(auth.isAdministrator()).toBeFalse();
+  });
 });

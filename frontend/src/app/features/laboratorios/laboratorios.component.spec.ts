@@ -1,11 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { AuthService } from '../../core/auth/auth.service';
 import { ErrorMessageService } from '../../core/errors/error-message.service';
 import { LaboratoriosService, Laboratorio } from './laboratorios.service';
 import { LaboratoriosComponent } from './laboratorios.component';
 
 describe('LaboratoriosComponent', () => {
   let fixture: ComponentFixture<LaboratoriosComponent>;
+  let auth: jasmine.SpyObj<AuthService>;
   let laboratories: jasmine.SpyObj<LaboratoriosService>;
   let errors: jasmine.SpyObj<ErrorMessageService>;
 
@@ -17,6 +20,8 @@ describe('LaboratoriosComponent', () => {
   };
 
   beforeEach(async () => {
+    auth = jasmine.createSpyObj<AuthService>('AuthService', ['isAdministrator']);
+    auth.isAdministrator.and.returnValue(false);
     laboratories = jasmine.createSpyObj<LaboratoriosService>(
       'LaboratoriosService',
       ['getActiveLaboratories']
@@ -26,6 +31,8 @@ describe('LaboratoriosComponent', () => {
     await TestBed.configureTestingModule({
       imports: [LaboratoriosComponent],
       providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: auth },
         { provide: LaboratoriosService, useValue: laboratories },
         { provide: ErrorMessageService, useValue: errors }
       ]
@@ -67,5 +74,14 @@ describe('LaboratoriosComponent', () => {
     expect(page.querySelector('[role="alert"]')?.textContent).toContain(
       'No se pudo cargar el catálogo.'
     );
+  });
+
+  it('shows an administration link only to administrators', () => {
+    laboratories.getActiveLaboratories.and.returnValue(of([activeLaboratory]));
+    auth.isAdministrator.and.returnValue(true);
+    createComponent();
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('a[href="/laboratorios/admin"]'))
+      .not.toBeNull();
   });
 });
