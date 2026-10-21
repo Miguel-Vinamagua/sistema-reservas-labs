@@ -13,7 +13,7 @@
 **Propósito**: Inicializar los dos proyectos de aplicación y la estructura de CI.
 
 - [X] T001 Crear el paquete del backend con Node.js 20 y las carpetas de código fuente y pruebas en `backend/package.json` y `backend/src/`
-- [ ] T002 [P] Preparar la aplicación Angular con componentes standalone en `frontend/` y ubicar su código fuente en `frontend/src/app/`
+- [X] T002 [P] Preparar la aplicación Angular con componentes standalone en `frontend/` y ubicar su código fuente en `frontend/src/app/`
 - [ ] T003 [P] Añadir ejemplos no secretos de variables de entorno para `MONGODB_URI` y el origen de la API en `backend/.env.example` y `frontend/.env.example`
 - [ ] T004 [P] Crear la estructura inicial del flujo de GitHub Actions para validar el backend y el frontend en `.github/workflows/ci.yml`
 
@@ -26,7 +26,7 @@
 - [X] T007 Crear el arranque del servidor para que se conecte a MongoDB antes de empezar a escuchar y gestione los errores de inicio en `backend/src/server.js`
 - [ ] T008 [P] Implementar la validación de solicitudes y respuestas JSON de error consistentes para `400`, `401`, `403`, `404`, `409` y `500` en `backend/src/middleware/error-handler.js`
 - [X] T009 [P] Implementar middleware de autorización que lea el principal autenticado y su rol del contexto de solicitud confiable, nunca de campos del cuerpo, en `backend/src/middleware/authorization.js`
-- [ ] T010 [P] Crear el cliente compartido de API de Angular y el servicio de presentación de errores en `frontend/src/app/core/api/` y `frontend/src/app/core/errors/`
+- [X] T010 [P] Crear el cliente compartido de API de Angular y el servicio de presentación de errores en `frontend/src/app/core/api/` y `frontend/src/app/core/errors/`
 - [X] T011 Configurar Jest, Supertest, el aislamiento de la base de datos de pruebas y la limpieza posterior para usar la base `reservas_test` en `backend/jest.config.js` y `backend/tests/setup.js`
 - [ ] T012 Configurar GitHub Actions para iniciar MongoDB como replica set de un solo nodo, inicializarlo, establecer `MONGODB_URI` para `reservas_test` y ejecutar las comprobaciones del backend y del frontend en `.github/workflows/ci.yml`
 
