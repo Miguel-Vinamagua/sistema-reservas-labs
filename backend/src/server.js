@@ -8,11 +8,14 @@ const { connectDatabase } = require('./config/database');
 
 async function startServer({ port = process.env.PORT || 3000 } = {}) {
   try {
+    console.log('Conectando a MongoDB...');
     await connectDatabase();
+    console.log('Conexión exitosa a la base de datos.');
 
     return await new Promise((resolve, reject) => {
       const server = app.listen(port, () => {
         server.removeListener('error', onError);
+        console.log(`Servidor HTTP listo y escuchando en http://localhost:${port}`);
         resolve(server);
       });
       const onError = (error) => reject(error);
@@ -26,7 +29,8 @@ async function startServer({ port = process.env.PORT || 3000 } = {}) {
 }
 
 if (require.main === module) {
-  startServer().catch(() => {
+  startServer().catch((err) => {
+    console.error('Error al arrancar:', err);
     process.exitCode = 1;
   });
 }
