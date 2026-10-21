@@ -31,6 +31,75 @@ function toObjectId(id) {
   return new mongoose.Types.ObjectId(id);
 }
 
+function validateLaboratoryFields(fields, allowPartial) {
+  if (!fields || typeof fields !== 'object' || Array.isArray(fields)) {
+    throw serviceError(400, 'VALIDATION_ERROR', 'Los datos del laboratorio no son válidos.');
+  }
+
+  const allowedFields = ['nombre', 'capacidad', 'ubicacion'];
+  const fieldNames = Object.keys(fields);
+  if (
+    fieldNames.some((field) => !allowedFields.includes(field)) ||
+    (!allowPartial && allowedFields.some((field) => !fieldNames.includes(field))) ||
+    (allowPartial && fieldNames.length === 0)
+  ) {
+    throw serviceError(400, 'VALIDATION_ERROR', 'Debe proporcionar únicamente campos válidos del laboratorio.');
+  }
+
+  const validated = {};
+  if (Object.hasOwn(fields, 'nombre')) {
+    if (typeof fields.nombre !== 'string' || !fields.nombre.trim()) {
+      throw serviceError(400, 'VALIDATION_ERROR', 'El nombre no puede estar vacío.');
+    }
+    validated.nombre = fields.nombre.trim();
+  }
+
+  if (Object.hasOwn(fields, 'capacidad')) {
+    if (!Number.isInteger(fields.capacidad) || fields.capacidad <= 0) {
+      throw serviceError(400, 'VALIDATION_ERROR', 'La capacidad debe ser un entero positivo.');
+    }
+    validated.capacidad = fields.capacidad;
+  }
+
+  if (Object.hasOwn(fields, 'ubicacion')) {
+    if (typeof fields.ubicacion !== 'string' || !fields.ubicacion.trim()) {
+      throw serviceError(400, 'VALIDATION_ERROR', 'La ubicación no puede estar vacía.');
+    }
+    validated.ubicacion = fields.ubicacion.trim();
+  }
+
+  return validated;
+}
+
+async function createLaboratory(fields) {
+  const validated = validateLaboratoryFields(fields, false);
+  const laboratory = await Laboratorio.create(validated);
+  return toPublicLaboratory(laboratory, true);
+}
+
+async function updateLaboratory(id, fields) {
+  const objectId = toObjectId(id);
+  const validated = validateLaboratoryFields(fields, true);
+  const laboratory = await Laboratorio.findById(objectId);
+  if (!laboratory) {
+    throw serviceError(404, 'LABORATORY_NOT_FOUND', 'No se encontró el laboratorio solicitado.');
+  }
+
+  Object.assign(laboratory, validated);
+  await laboratory.save();
+  return toPublicLaboratory(laboratory, true);
+}
+
+async function deactivateLaboratory(id) {
+  const laboratory = await getLaboratoryById(id);
+  if (laboratory.activo) {
+    laboratory.activo = false;
+    await laboratory.save();
+  }
+
+  return toPublicLaboratory(laboratory, true);
+}
+
 async function getLaboratories(role) {
   const isAdministrator = role === 'administrador';
   const filter = isAdministrator ? {} : { activo: true };
@@ -58,4 +127,11 @@ async function getLaboratoryById(id, session) {
   return laboratory;
 }
 
-module.exports = { getLaboratories, getLaboratoryById, serviceError };
+module.exports = {
+  createLaboratory,
+  deactivateLaboratory,
+  getLaboratories,
+  getLaboratoryById,
+  serviceError,
+  updateLaboratory
+};

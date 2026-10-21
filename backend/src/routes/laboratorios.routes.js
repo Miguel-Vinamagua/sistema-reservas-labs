@@ -1,6 +1,11 @@
 const express = require('express');
-const { authenticate } = require('../middleware/authorization');
-const { getLaboratories } = require('../services/laboratorio.service');
+const { authenticate, authorizeRoles } = require('../middleware/authorization');
+const {
+  createLaboratory,
+  deactivateLaboratory,
+  getLaboratories,
+  updateLaboratory
+} = require('../services/laboratorio.service');
 
 const router = express.Router();
 
@@ -20,6 +25,33 @@ router.get('/', authenticate, async (req, res) => {
   try {
     const laboratories = await getLaboratories(req.auth.role);
     return res.status(200).json({ data: laboratories });
+  } catch (error) {
+    return sendError(res, error);
+  }
+});
+
+router.post('/', authenticate, authorizeRoles('administrador'), async (req, res) => {
+  try {
+    const laboratory = await createLaboratory(req.body);
+    return res.status(201).json({ data: laboratory });
+  } catch (error) {
+    return sendError(res, error);
+  }
+});
+
+router.patch('/:id', authenticate, authorizeRoles('administrador'), async (req, res) => {
+  try {
+    const laboratory = await updateLaboratory(req.params.id, req.body);
+    return res.status(200).json({ data: laboratory });
+  } catch (error) {
+    return sendError(res, error);
+  }
+});
+
+router.patch('/:id/desactivar', authenticate, authorizeRoles('administrador'), async (req, res) => {
+  try {
+    const laboratory = await deactivateLaboratory(req.params.id);
+    return res.status(200).json({ data: laboratory });
   } catch (error) {
     return sendError(res, error);
   }

@@ -94,15 +94,15 @@
 
 > Escribir primero las pruebas y verificar que fallen antes de implementar.
 
-- [ ] T033 [P] [US3] Escribir pruebas con Supertest para crear, editar y desactivar como administrador, validar capacidad y ubicación, conservar reservas existentes y prohibir acciones de usuarios no administradores en `backend/tests/integration/laboratories-admin.test.js`
+- [X] T033 [P] [US3] Escribir pruebas con Supertest para crear, editar y desactivar como administrador, validar capacidad y ubicación, conservar reservas existentes y prohibir acciones de usuarios no administradores en `backend/tests/integration/laboratories-admin.test.js`
 - [ ] T034 [P] [US3] Escribir pruebas de Angular para los controles de administración exclusivos del administrador, los formularios de creación y edición, la desactivación y los errores de validación en `frontend/src/app/features/laboratorios/`
 
 ### Implementación de la historia de usuario 3
 
-- [ ] T035 [US3] Implementar la creación de laboratorios exclusiva del administrador con validación de nombre y ubicación no vacíos y capacidad entera positiva en `backend/src/services/laboratorio.service.js`
-- [ ] T036 [US3] Implementar la edición de `nombre`, `capacidad` y `ubicacion` exclusiva del administrador, rechazando cuerpos vacíos y campos desconocidos en `backend/src/services/laboratorio.service.js`
-- [ ] T037 [US3] Implementar la desactivación irreversible exclusiva del administrador, conservando el laboratorio y sus reservas existentes en `backend/src/services/laboratorio.service.js`
-- [ ] T038 [US3] Añadir las rutas `POST /api/laboratorios`, `PATCH /api/laboratorios/:id` y `PATCH /api/laboratorios/:id/desactivar`, protegidas por autorización de administrador en `backend/src/routes/laboratorios.routes.js`
+- [X] T035 [US3] Implementar la creación de laboratorios exclusiva del administrador con validación de nombre y ubicación no vacíos y capacidad entera positiva en `backend/src/services/laboratorio.service.js`
+- [X] T036 [US3] Implementar la edición de `nombre`, `capacidad` y `ubicacion` exclusiva del administrador, rechazando cuerpos vacíos y campos desconocidos en `backend/src/services/laboratorio.service.js`
+- [X] T037 [US3] Implementar la desactivación irreversible exclusiva del administrador, conservando el laboratorio y sus reservas existentes en `backend/src/services/laboratorio.service.js`
+- [X] T038 [US3] Añadir las rutas `POST /api/laboratorios`, `PATCH /api/laboratorios/:id` y `PATCH /api/laboratorios/:id/desactivar`, protegidas por autorización de administrador en `backend/src/routes/laboratorios.routes.js`
 - [ ] T039 [US3] Crear controles de administración standalone y formularios para crear, editar y desactivar laboratorios en `frontend/src/app/features/laboratorios/`
 
 **Punto de control**: Los administradores mantienen el catálogo; los usuarios que no son administradores no pueden modificarlo y los laboratorios desactivados rechazan nuevas reservas sin perder las existentes.
