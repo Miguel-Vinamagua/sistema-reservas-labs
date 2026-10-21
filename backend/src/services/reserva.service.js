@@ -64,6 +64,69 @@ function serializeReservation(reservation) {
   };
 }
 
+function serializeOwnedReservation(reservation) {
+  const laboratory = reservation.laboratorio;
+  return {
+    id: reservation._id.toString(),
+    laboratorio: laboratory
+      ? {
+        id: laboratory._id.toString(),
+        nombre: laboratory.nombre,
+        ubicacion: laboratory.ubicacion
+      }
+      : null,
+    inicio: reservation.inicio.toISOString(),
+    fin: reservation.fin.toISOString(),
+    estado: reservation.estado
+  };
+}
+
+function toObjectId(value, fieldName) {
+  if (typeof value !== 'string' || !mongoose.isValidObjectId(value)) {
+    throw serviceError(400, 'VALIDATION_ERROR', `${fieldName} no es válido.`);
+  }
+
+  return new mongoose.Types.ObjectId(value);
+}
+
+async function getOwnReservations(usuarioId) {
+  const userObjectId = toObjectId(usuarioId, 'El usuario autenticado');
+  const reservations = await Reserva.find({ usuario: userObjectId })
+    .populate('laboratorio', 'nombre ubicacion')
+    .sort({ inicio: 1, _id: 1 })
+    .lean();
+
+  return reservations.map(serializeOwnedReservation);
+}
+
+async function cancelOwnReservation(reservationId, usuarioId) {
+  const reservationObjectId = toObjectId(reservationId, 'El identificador de la reserva');
+  const userObjectId = toObjectId(usuarioId, 'El usuario autenticado');
+
+  const reservation = await Reserva.findOneAndUpdate(
+    {
+      _id: reservationObjectId,
+      usuario: userObjectId,
+      estado: 'activa'
+    },
+    { $set: { estado: 'cancelada' } },
+    { new: true, runValidators: true }
+  );
+
+  if (reservation) {
+    return serializeReservation(reservation);
+  }
+
+  const existingReservation = await Reserva.findById(reservationObjectId)
+    .select('usuario estado')
+    .lean();
+  if (!existingReservation || !existingReservation.usuario.equals(userObjectId)) {
+    throw serviceError(404, 'RESERVATION_NOT_FOUND', 'No se encontró la reserva solicitada.');
+  }
+
+  throw serviceError(409, 'RESERVATION_NOT_CANCELLABLE', 'La reserva ya no está activa.');
+}
+
 async function createReservation({ laboratorioId, inicio, fin, usuarioId }) {
   if (typeof laboratorioId !== 'string' || !/^[a-f\d]{24}$/i.test(laboratorioId)) {
     throw serviceError(400, 'VALIDATION_ERROR', 'El identificador del laboratorio no es válido.');
@@ -132,4 +195,10 @@ async function createReservation({ laboratorioId, inicio, fin, usuarioId }) {
   return createdReservation;
 }
 
-module.exports = { createReservation, parseDateTime, universityLocalDate };
+module.exports = {
+  cancelOwnReservation,
+  createReservation,
+  getOwnReservations,
+  parseDateTime,
+  universityLocalDate
+};

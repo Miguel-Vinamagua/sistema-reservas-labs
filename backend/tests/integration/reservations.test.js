@@ -250,3 +250,138 @@ describe('POST /api/reservas', () => {
     expect(await Reserva.countDocuments()).toBe(2);
   });
 });
+
+describe('GET /api/reservas and PATCH /api/reservas/:id/cancelar', () => {
+  let laboratory;
+
+  beforeAll(async () => {
+    process.env.JWT_SECRET = jwtSecret;
+    await connectTestDatabase();
+  });
+
+  beforeEach(async () => {
+    laboratory = await Laboratorio.create({
+      nombre: 'Laboratorio de consulta',
+      capacidad: 18,
+      ubicacion: 'Bloque C'
+    });
+  });
+
+  afterAll(() => {
+    delete process.env.JWT_SECRET;
+  });
+
+  it('lists only the authenticated user reservations with laboratory details', async () => {
+    const otherUserId = '66a000000000000000000002';
+    const start = futureDate();
+    const ownReservation = await Reserva.create({
+      laboratorio: laboratory._id,
+      usuario: new mongoose.Types.ObjectId(studentId),
+      inicio: new Date(start),
+      fin: new Date(dateAt(start, 12))
+    });
+    await Reserva.create({
+      laboratorio: laboratory._id,
+      usuario: new mongoose.Types.ObjectId(otherUserId),
+      inicio: new Date(dateAt(start, 13)),
+      fin: new Date(dateAt(start, 14))
+    });
+
+    const response = await request(app)
+      .get('/api/reservas')
+      .set('Authorization', `Bearer ${token()}`)
+      .expect(200);
+
+    expect(response.body.data).toHaveLength(1);
+    expect(response.body.data[0]).toMatchObject({
+      id: ownReservation.id,
+      laboratorio: {
+        id: laboratory.id,
+        nombre: laboratory.nombre,
+        ubicacion: laboratory.ubicacion
+      },
+      inicio: expect.any(String),
+      fin: expect.any(String),
+      estado: 'activa'
+    });
+  });
+
+  it('requires authentication to list reservations', async () => {
+    await request(app)
+      .get('/api/reservas')
+      .expect(401);
+  });
+
+  it('cancels an owned active reservation and makes its interval available', async () => {
+    const start = futureDate();
+    const reservation = await Reserva.create({
+      laboratorio: laboratory._id,
+      usuario: new mongoose.Types.ObjectId(studentId),
+      inicio: new Date(start),
+      fin: new Date(dateAt(start, 12))
+    });
+
+    const cancellation = await request(app)
+      .patch(`/api/reservas/${reservation.id}/cancelar`)
+      .set('Authorization', `Bearer ${token()}`)
+      .expect(200);
+
+    expect(cancellation.body.data).toMatchObject({
+      id: reservation.id,
+      estado: 'cancelada'
+    });
+    await expect(Reserva.findById(reservation._id).lean()).resolves.toMatchObject({
+      estado: 'cancelada'
+    });
+
+    await request(app)
+      .post('/api/reservas')
+      .set('Authorization', `Bearer ${token('66a000000000000000000002')}`)
+      .send({
+        laboratorioId: laboratory.id,
+        inicio: start,
+        fin: dateAt(start, 12)
+      })
+      .expect(201);
+  });
+
+  it('does not allow cancelling another user reservation', async () => {
+    const start = futureDate();
+    const reservation = await Reserva.create({
+      laboratorio: laboratory._id,
+      usuario: new mongoose.Types.ObjectId('66a000000000000000000002'),
+      inicio: new Date(start),
+      fin: new Date(dateAt(start, 12))
+    });
+
+    await request(app)
+      .patch(`/api/reservas/${reservation.id}/cancelar`)
+      .set('Authorization', `Bearer ${token()}`)
+      .expect(404);
+
+    await expect(Reserva.findById(reservation._id).lean()).resolves.toMatchObject({
+      estado: 'activa'
+    });
+  });
+
+  it('rejects cancelling an already cancelled or nonexistent reservation', async () => {
+    const start = futureDate();
+    const cancelledReservation = await Reserva.create({
+      laboratorio: laboratory._id,
+      usuario: new mongoose.Types.ObjectId(studentId),
+      inicio: new Date(start),
+      fin: new Date(dateAt(start, 12)),
+      estado: 'cancelada'
+    });
+
+    await request(app)
+      .patch(`/api/reservas/${cancelledReservation.id}/cancelar`)
+      .set('Authorization', `Bearer ${token()}`)
+      .expect(409);
+
+    await request(app)
+      .patch(`/api/reservas/${new mongoose.Types.ObjectId()}/cancelar`)
+      .set('Authorization', `Bearer ${token()}`)
+      .expect(404);
+  });
+});
