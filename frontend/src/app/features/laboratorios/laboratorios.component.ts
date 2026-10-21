@@ -1,15 +1,21 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { AuthService } from '../../core/auth/auth.service';
 import { ErrorMessageService } from '../../core/errors/error-message.service';
 import { Laboratorio, LaboratoriosService } from './laboratorios.service';
 
 @Component({
   selector: 'app-laboratorios',
+  imports: [RouterLink],
   template: `
     <main class="catalog-page">
       <header class="catalog-header">
         <p class="eyebrow">Espacios académicos</p>
         <h1>Laboratorios</h1>
         <p class="intro">Consulta capacidad y ubicación antes de planear tu sesión.</p>
+        @if (administrator) {
+          <a class="admin-link" routerLink="/laboratorios/admin">Administrar laboratorios</a>
+        }
       </header>
 
       @if (loading()) {
@@ -47,6 +53,7 @@ import { Laboratorio, LaboratoriosService } from './laboratorios.service';
     .eyebrow { margin: 0 0 12px; color: #467366; font: 700 12px/1.4 Arial, sans-serif; text-transform: uppercase; }
     h1 { margin: 0; font-size: clamp(34px, 6vw, 56px); line-height: 1.05; }
     .intro { margin: 14px 0 0; color: #52635e; font: 16px/1.5 Arial, sans-serif; }
+    .admin-link { display: inline-flex; min-height: 38px; align-items: center; margin-top: 16px; padding: 0 12px; border: 1px solid #aabbb4; border-radius: 4px; color: #315b4e; font: 700 12px Arial, sans-serif; text-decoration: none; }
     .catalog-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px; }
     .laboratory { min-width: 0; padding: 20px; border: 1px solid #d1ddd7; border-left: 4px solid #46806f; border-radius: 4px; background: #fff; }
     .laboratory-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
@@ -60,9 +67,11 @@ import { Laboratorio, LaboratoriosService } from './laboratorios.service';
   `
 })
 export class LaboratoriosComponent implements OnInit {
+  private readonly auth = inject(AuthService);
   private readonly service = inject(LaboratoriosService);
   private readonly errors = inject(ErrorMessageService);
 
+  readonly administrator = this.auth.isAdministrator();
   readonly laboratories = signal<Laboratorio[]>([]);
   readonly loading = signal(true);
   readonly errorMessage = signal<string | null>(null);
