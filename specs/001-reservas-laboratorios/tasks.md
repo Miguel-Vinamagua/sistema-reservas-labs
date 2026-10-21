@@ -72,14 +72,14 @@
 
 > Escribir primero las pruebas y verificar que fallen antes de implementar.
 
-- [ ] T027 [P] [US2] Escribir pruebas con Supertest para filtrar las reservas propias, cancelar con éxito, manejar reservas ya canceladas y rechazar la cancelación de la reserva de otro usuario en `backend/tests/integration/reservations.test.js`
+- [X] T027 [P] [US2] Escribir pruebas con Supertest para filtrar las reservas propias, cancelar con éxito, manejar reservas ya canceladas y rechazar la cancelación de la reserva de otro usuario en `backend/tests/integration/reservations.test.js`
 - [ ] T028 [P] [US2] Escribir pruebas de Angular para mostrar la lista de reservas propias, el estado vacío, la confirmación de cancelación y el estado cancelado actualizado en `frontend/src/app/features/reservas/`
 
 ### Implementación de la historia de usuario 2
 
-- [ ] T029 [US2] Implementar la consulta de reservas propias, filtrada exclusivamente por el ObjectId del usuario autenticado, y los datos visibles del laboratorio relacionado en `backend/src/services/reserva.service.js`
-- [ ] T030 [US2] Implementar la cancelación como una transición de `activa` a `cancelada` condicionada a la propiedad y al estado activo en `backend/src/services/reserva.service.js`
-- [ ] T031 [US2] Añadir las rutas `GET /api/reservas` y `PATCH /api/reservas/:id/cancelar` usando el principal autenticado en `backend/src/routes/reservas.routes.js`
+- [X] T029 [US2] Implementar la consulta de reservas propias, filtrada exclusivamente por el ObjectId del usuario autenticado, y los datos visibles del laboratorio relacionado en `backend/src/services/reserva.service.js`
+- [X] T030 [US2] Implementar la cancelación como una transición de `activa` a `cancelada` condicionada a la propiedad y al estado activo en `backend/src/services/reserva.service.js`
+- [X] T031 [US2] Añadir las rutas `GET /api/reservas` y `PATCH /api/reservas/:id/cancelar` usando el principal autenticado en `backend/src/routes/reservas.routes.js`
 - [ ] T032 [US2] Crear la vista standalone de reservas propias con laboratorio, fecha, hora, estado, estado vacío y acción de cancelación en `frontend/src/app/features/reservas/`
 
 **Punto de control**: La historia de usuario 2 no muestra reservas de otros usuarios y excluye las reservas canceladas de futuras comprobaciones de conflictos.

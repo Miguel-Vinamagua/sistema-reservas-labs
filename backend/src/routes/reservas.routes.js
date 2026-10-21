@@ -1,6 +1,10 @@
 const express = require('express');
 const { authenticate, authorizeRoles } = require('../middleware/authorization');
-const { createReservation } = require('../services/reserva.service');
+const {
+  cancelOwnReservation,
+  createReservation,
+  getOwnReservations
+} = require('../services/reserva.service');
 
 const router = express.Router();
 
@@ -11,10 +15,19 @@ function sendError(res, error) {
       code: error.code || 'INTERNAL_SERVER_ERROR',
       message: error.statusCode
         ? error.message
-        : 'No se pudo crear la reserva.'
+        : 'No se pudo completar la operación de reservas.'
     }
   });
 }
+
+router.get('/', authenticate, authorizeRoles('estudiante', 'docente'), async (req, res) => {
+  try {
+    const reservations = await getOwnReservations(req.auth.userId);
+    return res.status(200).json({ data: reservations });
+  } catch (error) {
+    return sendError(res, error);
+  }
+});
 
 router.post('/', authenticate, authorizeRoles('estudiante', 'docente'), async (req, res) => {
   try {
@@ -26,6 +39,15 @@ router.post('/', authenticate, authorizeRoles('estudiante', 'docente'), async (r
     });
 
     return res.status(201).json({ data: reservation });
+  } catch (error) {
+    return sendError(res, error);
+  }
+});
+
+router.patch('/:id/cancelar', authenticate, authorizeRoles('estudiante', 'docente'), async (req, res) => {
+  try {
+    const reservation = await cancelOwnReservation(req.params.id, req.auth.userId);
+    return res.status(200).json({ data: reservation });
   } catch (error) {
     return sendError(res, error);
   }
