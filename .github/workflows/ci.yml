@@ -19,13 +19,14 @@ jobs:
         ports:
           - 27017:27017
         options: >-
-          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1})'"
+          --health-cmd "mongosh --quiet --eval 'try { rs.initiate() } catch(e) {}; db.adminCommand({ping:1})'"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     env:
-      MONGODB_URI: mongodb://localhost:27017/reservas_test
-      JWT_SECRET: secreto-solo-para-prueban-ci
+      MONGODB_URI: mongodb://localhost:27017/reservas_test?replicaSet=rs0
+      JWT_SECRET: super_clave_secreta_para_el_sistema_de_reservas_2026_jwt
       NODE_ENV: test
     defaults:
       run:
