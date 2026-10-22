@@ -13,26 +13,24 @@ jobs:
   backend:
     name: backend
     runs-on: ubuntu-latest
-    services:
-      mongo:
-        image: mongo:7
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --quiet --eval 'try { rs.initiate() } catch(e) {}; db.adminCommand({ping:1})'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     env:
       MONGODB_URI: mongodb://localhost:27017/reservas_test?replicaSet=rs0
-      JWT_SECRET: super_clave_secreta_para_el_sistema_de_reservas_2026_jwt
+      JWT_SECRET: secreto-solo-para-pruebas-ci
       NODE_ENV: test
     defaults:
       run:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
+
+      - name: Iniciar MongoDB con replica set
+        working-directory: .
+        run: |
+          docker run -d --name mongo -p 27017:27017 mongo:7 --replSet rs0 --bind_ip_all
+          until docker exec mongo mongosh --quiet --eval "db.adminCommand({ping:1})" >/dev/null 2>&1; do sleep 2; done
+          docker exec mongo mongosh --quiet --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"localhost:27017"}]})'
+          until [ "$(docker exec mongo mongosh --quiet --eval 'db.hello().isWritablePrimary')" = "true" ]; do sleep 2; done
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
