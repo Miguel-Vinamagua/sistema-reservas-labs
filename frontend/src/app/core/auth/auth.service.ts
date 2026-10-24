@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { ApiService } from '../api/api.service';
 import { TokenStorageService } from './token-storage.service';
@@ -25,10 +25,15 @@ export interface LoginResponse {
 export class AuthService {
   private readonly api = inject(ApiService);
   private readonly tokenStorage = inject(TokenStorageService);
+  readonly userEmail = signal(this.tokenStorage.getUserEmail());
 
   login(credentials: LoginCredentials): Observable<LoginResponse> {
     return this.api.post<LoginResponse>('/auth/login', credentials).pipe(
-      tap((response) => this.tokenStorage.setToken(response.data.token))
+      tap((response) => {
+        this.tokenStorage.setToken(response.data.token);
+        this.tokenStorage.setUserEmail(response.data.user.correo);
+        this.userEmail.set(response.data.user.correo);
+      })
     );
   }
 
@@ -64,5 +69,7 @@ export class AuthService {
 
   logout(): void {
     this.tokenStorage.clearToken();
+    this.tokenStorage.clearUserEmail();
+    this.userEmail.set(null);
   }
 }
