@@ -17,7 +17,6 @@ export class TokenStorageService {
     localStorage.removeItem(tokenStorageKey);
   }
 
-
   getUserEmail(): string | null {
     return localStorage.getItem(userEmailStorageKey);
   }

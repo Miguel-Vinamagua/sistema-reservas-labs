@@ -22,6 +22,7 @@ function localDateString(date: Date): string {
   imports: [ReactiveFormsModule],
   template: `
     <main class="reservation-page">
+    
       <header class="page-header">
         <p class="eyebrow">Nueva solicitud</p>
         <h1>Reservar un laboratorio</h1>

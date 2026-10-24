@@ -151,3 +151,16 @@ El job `frontend` usa Node.js 22, ejecuta `npm ci` dentro de `frontend/`, lanza 
 
 La funcionalidad y los criterios de aceptación se mantienen en `specs/001-reservas-laboratorios/`. El contrato de endpoints está en `api-contract.md`; la guía de escenarios y configuración está en `quickstart.md`.
 
+<<<<<<< HEAD
+## Descripción
+Sistema para la gestión y reserva de laboratorios académicos.
+
+## Datos de prueba
+
+Desde `backend`, configura `MONGODB_URI` en `.env` y registra al menos un usuario
+con `SEED_USERS` ejecutando `npm run seed`. Después ejecuta `npm run seed:labs`
+para crear laboratorios de prueba y reservas asociadas a ese usuario. El seed de
+laboratorios puede ejecutarse más de una vez sin duplicar laboratorios por nombre
+ni reservas de prueba.
+=======
+>>>>>>> main
