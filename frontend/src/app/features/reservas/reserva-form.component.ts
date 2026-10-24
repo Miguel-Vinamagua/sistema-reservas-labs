@@ -23,7 +23,6 @@ function localDateString(date: Date): string {
   template: `
     <main class="reservation-page">
       <header class="page-header">
-        <a routerLink="/laboratorios">← Laboratorios</a>
         <p class="eyebrow">Nueva solicitud</p>
         <h1>Reservar un laboratorio</h1>
         <p>Elige un espacio y un horario para tu actividad.</p>

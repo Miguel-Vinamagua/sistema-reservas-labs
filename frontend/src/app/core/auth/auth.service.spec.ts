@@ -49,16 +49,23 @@ describe('AuthService', () => {
     });
 
     expect(tokenStorage.getToken()).toBe('jwt-from-api');
+
+    expect(tokenStorage.getUserEmail()).toBe('student@university.edu');
+    expect(auth.userEmail()).toBe('student@university.edu');
+    
     expect(result).toEqual(jasmine.objectContaining({ data: jasmine.objectContaining({ token: 'jwt-from-api' }) }));
     expect(auth.isAuthenticated()).toBeTrue();
   });
 
   it('removes the stored token on logout', () => {
     tokenStorage.setToken('jwt-from-api');
+    tokenStorage.setUserEmail('student@university.edu');
 
     auth.logout();
 
     expect(tokenStorage.getToken()).toBeNull();
+    expect(tokenStorage.getUserEmail()).toBeNull();
+    expect(auth.userEmail()).toBeNull();
     expect(auth.isAuthenticated()).toBeFalse();
   });
 

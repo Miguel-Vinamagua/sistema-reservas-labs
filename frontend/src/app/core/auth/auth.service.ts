@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { ApiService } from '../api/api.service';
 import { TokenStorageService } from './token-storage.service';
@@ -25,10 +25,15 @@ export interface LoginResponse {
 export class AuthService {
   private readonly api = inject(ApiService);
   private readonly tokenStorage = inject(TokenStorageService);
+  readonly userEmail = signal(this.tokenStorage.getUserEmail());
 
   login(credentials: LoginCredentials): Observable<LoginResponse> {
     return this.api.post<LoginResponse>('/auth/login', credentials).pipe(
-      tap((response) => this.tokenStorage.setToken(response.data.token))
+      tap((response) => {
+        this.tokenStorage.setToken(response.data.token);
+        this.tokenStorage.setUserEmail(response.data.user.correo);
+        this.userEmail.set(response.data.user.correo);
+      })
     );
   }
 
@@ -58,11 +63,34 @@ export class AuthService {
     }
   }
 
+  getUserEmail(): string | null {
+    const token = this.tokenStorage.getToken();
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const payload = token.split('.')[1];
+      if (!payload) {
+        return null;
+      }
+      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const decoded = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '='));
+      const parsed = JSON.parse(decoded) as { correo?: unknown; email?: unknown };
+      const email = parsed.correo || parsed.email;
+      return typeof email === 'string' ? email : null;
+    } catch {
+      return null;
+    }
+  }
+
   isAdministrator(): boolean {
     return this.getRole() === 'administrador';
   }
 
   logout(): void {
     this.tokenStorage.clearToken();
+    this.tokenStorage.clearUserEmail();
+    this.userEmail.set(null);
   }
 }
