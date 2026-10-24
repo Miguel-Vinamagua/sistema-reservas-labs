@@ -8,8 +8,7 @@ import { ReservaPropia, ReservasService } from './reservas.service';
     <main class="reservations-page">
       <header class="page-header">
         <nav aria-label="Navegación de reservas">
-          <a routerLink="/laboratorios">Laboratorios</a>
-          <a routerLink="/reservas/nueva">Nueva reserva</a>
+        
         </nav>
         <p class="eyebrow">Tu actividad</p>
         <h1>Mis Reservas</h1>
