@@ -3,6 +3,7 @@ const request = require('supertest');
 const app = require('../../src/app');
 const Laboratorio = require('../../src/models/laboratorio.model');
 const Reserva = require('../../src/models/reserva.model');
+const SesionLaboratorio = require('../../src/models/sesion-laboratorio.model');
 const { connectTestDatabase } = require('../setup');
 
 const jwtSecret = 'test-only-signing-secret';
@@ -118,11 +119,19 @@ describe('administrator laboratory management', () => {
 
   it('deactivates a laboratory without deleting or changing its reservations', async () => {
     const laboratory = await Laboratorio.create(laboratoryInput());
-    const reservation = await Reserva.create({
+    const laboratorySession = await SesionLaboratorio.create({
       laboratorio: laboratory._id,
-      usuario: studentId,
+      docente: teacherId,
+      materia: 'Química',
+      actividad: 'Práctica',
       inicio: new Date('2030-05-10T15:00:00.000Z'),
-      fin: new Date('2030-05-10T17:00:00.000Z')
+      fin: new Date('2030-05-10T17:00:00.000Z'),
+      capacidadMax: laboratory.capacidad,
+      inscritosCount: 1
+    });
+    const reservation = await Reserva.create({
+      sesionLaboratorio: laboratorySession._id,
+      usuario: studentId,
     });
 
     const response = await request(app)

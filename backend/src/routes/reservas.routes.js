@@ -32,9 +32,7 @@ router.get('/', authenticate, authorizeRoles('estudiante', 'docente'), async (re
 router.post('/', authenticate, authorizeRoles('estudiante', 'docente'), async (req, res) => {
   try {
     const reservation = await createReservation({
-      laboratorioId: req.body?.laboratorioId,
-      inicio: req.body?.inicio,
-      fin: req.body?.fin,
+      sesionLaboratorioId: req.body?.sesionLaboratorioId,
       usuarioId: req.auth.userId
     });
 
