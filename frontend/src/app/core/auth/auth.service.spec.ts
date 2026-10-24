@@ -49,8 +49,10 @@ describe('AuthService', () => {
     });
 
     expect(tokenStorage.getToken()).toBe('jwt-from-api');
+
     expect(tokenStorage.getUserEmail()).toBe('student@university.edu');
     expect(auth.userEmail()).toBe('student@university.edu');
+    
     expect(result).toEqual(jasmine.objectContaining({ data: jasmine.objectContaining({ token: 'jwt-from-api' }) }));
     expect(auth.isAuthenticated()).toBeTrue();
   });

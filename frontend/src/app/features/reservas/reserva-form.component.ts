@@ -24,8 +24,7 @@ function localDateString(date: Date): string {
     <main class="reservation-page">
     
       <header class="page-header">
-
-      <p class="eyebrow">Nueva solicitud</p>
+        <p class="eyebrow">Nueva solicitud</p>
         <h1>Reservar un laboratorio</h1>
         <p>Elige un espacio y un horario para tu actividad.</p>
       </header>

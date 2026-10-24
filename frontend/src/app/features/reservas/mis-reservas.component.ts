@@ -7,7 +7,9 @@ import { ReservaPropia, ReservasService } from './reservas.service';
   template: `
     <main class="reservations-page">
       <header class="page-header">
+        <nav aria-label="Navegación de reservas">
         
+        </nav>
         <p class="eyebrow">Tu actividad</p>
         <h1>Mis Reservas</h1>
       </header>

@@ -63,6 +63,27 @@ export class AuthService {
     }
   }
 
+  getUserEmail(): string | null {
+    const token = this.tokenStorage.getToken();
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const payload = token.split('.')[1];
+      if (!payload) {
+        return null;
+      }
+      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const decoded = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '='));
+      const parsed = JSON.parse(decoded) as { correo?: unknown; email?: unknown };
+      const email = parsed.correo || parsed.email;
+      return typeof email === 'string' ? email : null;
+    } catch {
+      return null;
+    }
+  }
+
   isAdministrator(): boolean {
     return this.getRole() === 'administrador';
   }

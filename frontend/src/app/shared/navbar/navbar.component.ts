@@ -20,7 +20,7 @@ export class NavbarComponent {
   }
 
   get administrator(): boolean {
-    return this.auth.isAdministrator();
+    return this.auth.isAuthenticated() && this.auth.isAdministrator();
   }
 
   toggleMenu(): void {
