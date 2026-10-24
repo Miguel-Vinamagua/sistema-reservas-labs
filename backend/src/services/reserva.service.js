@@ -1,73 +1,25 @@
 const mongoose = require('mongoose');
 const Reserva = require('../models/reserva.model');
+const SesionLaboratorio = require('../models/sesion-laboratorio.model');
 const Laboratorio = require('../models/laboratorio.model');
 const { getLaboratoryById, serviceError } = require('./laboratorio.service');
-
-const universityTimeZone = 'America/Bogota';
-const universityDateFormatter = new Intl.DateTimeFormat('en-US', {
-  timeZone: universityTimeZone,
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit'
-});
-
-function parseDateTime(value, fieldName) {
-  if (typeof value !== 'string') {
-    throw serviceError(400, 'VALIDATION_ERROR', `${fieldName} debe ser una fecha ISO 8601 con zona horaria.`);
-  }
-
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|[+-]\d{2}:\d{2})$/);
-  if (!match) {
-    throw serviceError(400, 'VALIDATION_ERROR', `${fieldName} debe ser una fecha ISO 8601 con zona horaria.`);
-  }
-
-  const [, yearText, monthText, dayText, hourText, minuteText, secondText = '0', , offset] = match;
-  const year = Number(yearText);
-  const month = Number(monthText);
-  const day = Number(dayText);
-  const hour = Number(hourText);
-  const minute = Number(minuteText);
-  const second = Number(secondText);
-  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  const offsetMatch = offset === 'Z' ? null : offset.slice(1).split(':').map(Number);
-
-  if (
-    year < 1 || month < 1 || month > 12 || day < 1 || day > daysInMonth ||
-    hour > 23 || minute > 59 || second > 59 ||
-    (offsetMatch && (offsetMatch[0] > 23 || offsetMatch[1] > 59))
-  ) {
-    throw serviceError(400, 'VALIDATION_ERROR', `${fieldName} no es una fecha válida.`);
-  }
-
-  const timestamp = Date.parse(value);
-  if (!Number.isFinite(timestamp)) {
-    throw serviceError(400, 'VALIDATION_ERROR', `${fieldName} no es una fecha válida.`);
-  }
-
-  return new Date(timestamp);
-}
-
-function universityLocalDate(date) {
-  const parts = universityDateFormatter.formatToParts(date);
-  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
-  return `${values.year}-${values.month}-${values.day}`;
-}
 
 function serializeReservation(reservation) {
   return {
     id: reservation._id.toString(),
-    laboratorio: reservation.laboratorio.toString(),
+    sesionLaboratorio: reservation.sesionLaboratorio.toString(),
     usuario: reservation.usuario.toString(),
-    inicio: reservation.inicio.toISOString(),
-    fin: reservation.fin.toISOString(),
     estado: reservation.estado
   };
 }
 
 function serializeOwnedReservation(reservation) {
-  const laboratory = reservation.laboratorio;
+  const laboratorySession = reservation.sesionLaboratorio;
+  const laboratory = laboratorySession?.laboratorio;
+
   return {
     id: reservation._id.toString(),
+    sesionLaboratorio: laboratorySession?._id.toString() ?? null,
     laboratorio: laboratory
       ? {
         id: laboratory._id.toString(),
@@ -75,8 +27,10 @@ function serializeOwnedReservation(reservation) {
         ubicacion: laboratory.ubicacion
       }
       : null,
-    inicio: reservation.inicio.toISOString(),
-    fin: reservation.fin.toISOString(),
+    materia: laboratorySession?.materia ?? null,
+    actividad: laboratorySession?.actividad ?? null,
+    inicio: laboratorySession?.inicio?.toISOString() ?? null,
+    fin: laboratorySession?.fin?.toISOString() ?? null,
     estado: reservation.estado
   };
 }
@@ -92,97 +46,127 @@ function toObjectId(value, fieldName) {
 async function getOwnReservations(usuarioId) {
   const userObjectId = toObjectId(usuarioId, 'El usuario autenticado');
   const reservations = await Reserva.find({ usuario: userObjectId })
-    .populate('laboratorio', 'nombre ubicacion')
-    .sort({ inicio: 1, _id: 1 })
+    .populate({
+      path: 'sesionLaboratorio',
+      populate: { path: 'laboratorio', select: 'nombre ubicacion' }
+    })
+    .sort({ _id: 1 })
     .lean();
 
-  return reservations.map(serializeOwnedReservation);
+  return reservations
+    .sort((left, right) => {
+      const leftStart = left.sesionLaboratorio?.inicio?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      const rightStart = right.sesionLaboratorio?.inicio?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      return leftStart - rightStart || left._id.toString().localeCompare(right._id.toString());
+    })
+    .map(serializeOwnedReservation);
 }
 
 async function cancelOwnReservation(reservationId, usuarioId) {
   const reservationObjectId = toObjectId(reservationId, 'El identificador de la reserva');
   const userObjectId = toObjectId(usuarioId, 'El usuario autenticado');
+  const session = await mongoose.startSession();
+  let cancelledReservation;
 
-  const reservation = await Reserva.findOneAndUpdate(
-    {
-      _id: reservationObjectId,
-      usuario: userObjectId,
-      estado: 'activa'
-    },
-    { $set: { estado: 'cancelada' } },
-    { new: true, runValidators: true }
-  );
+  try {
+    await session.withTransaction(async () => {
+      const reservation = await Reserva.findOneAndUpdate(
+        {
+          _id: reservationObjectId,
+          usuario: userObjectId,
+          estado: 'activa'
+        },
+        { $set: { estado: 'cancelada' } },
+        { new: true, runValidators: true, session }
+      );
 
-  if (reservation) {
-    return serializeReservation(reservation);
+      if (!reservation) {
+        const existingReservation = await Reserva.findById(reservationObjectId)
+          .select('usuario estado')
+          .session(session)
+          .lean();
+        if (!existingReservation || !existingReservation.usuario.equals(userObjectId)) {
+          throw serviceError(404, 'RESERVATION_NOT_FOUND', 'No se encontró la reserva solicitada.');
+        }
+
+        throw serviceError(409, 'RESERVATION_NOT_CANCELLABLE', 'La reserva ya no está activa.');
+      }
+
+      const laboratorySession = await SesionLaboratorio.findById(reservation.sesionLaboratorio)
+        .session(session);
+      if (!laboratorySession || laboratorySession.inscritosCount < 1) {
+        throw new Error('No se pudo actualizar el contador de inscritos de la sesión.');
+      }
+
+      laboratorySession.inscritosCount -= 1;
+      if (laboratorySession.estado === 'llena') {
+        laboratorySession.estado = 'disponible';
+      }
+      await laboratorySession.save({ session });
+      cancelledReservation = serializeReservation(reservation);
+    });
+  } finally {
+    await session.endSession();
   }
 
-  const existingReservation = await Reserva.findById(reservationObjectId)
-    .select('usuario estado')
-    .lean();
-  if (!existingReservation || !existingReservation.usuario.equals(userObjectId)) {
-    throw serviceError(404, 'RESERVATION_NOT_FOUND', 'No se encontró la reserva solicitada.');
-  }
-
-  throw serviceError(409, 'RESERVATION_NOT_CANCELLABLE', 'La reserva ya no está activa.');
+  return cancelledReservation;
 }
 
-async function createReservation({ laboratorioId, inicio, fin, usuarioId }) {
-  if (typeof laboratorioId !== 'string' || !/^[a-f\d]{24}$/i.test(laboratorioId)) {
-    throw serviceError(400, 'VALIDATION_ERROR', 'El identificador del laboratorio no es válido.');
-  }
-  if (typeof usuarioId !== 'string' || !mongoose.isValidObjectId(usuarioId)) {
-    throw serviceError(400, 'VALIDATION_ERROR', 'El usuario autenticado no es válido.');
-  }
-
-  const start = parseDateTime(inicio, 'inicio');
-  const end = parseDateTime(fin, 'fin');
-  if (end <= start) {
-    throw serviceError(400, 'VALIDATION_ERROR', 'La fecha de fin debe ser posterior a la fecha de inicio.');
-  }
-
-  const todayInUniversity = universityLocalDate(new Date());
-  if (universityLocalDate(start) < todayInUniversity) {
-    throw serviceError(400, 'VALIDATION_ERROR', 'No se permiten reservas en fechas pasadas.');
-  }
-
-  const laboratoryObjectId = new mongoose.Types.ObjectId(laboratorioId);
-  const userObjectId = new mongoose.Types.ObjectId(usuarioId);
+async function createReservation({ sesionLaboratorioId, usuarioId }) {
+  const laboratorySessionId = toObjectId(
+    sesionLaboratorioId,
+    'El identificador de la sesión de laboratorio'
+  );
+  const userObjectId = toObjectId(usuarioId, 'El usuario autenticado');
   const session = await mongoose.startSession();
   let createdReservation;
 
   try {
     await session.withTransaction(async () => {
-      const guardResult = await Laboratorio.updateOne(
-        { _id: laboratoryObjectId, activo: true },
+      const laboratorySession = await SesionLaboratorio.findById(laboratorySessionId)
+        .session(session);
+      if (!laboratorySession) {
+        throw serviceError(404, 'LAB_SESSION_NOT_FOUND', 'No se encontró la sesión solicitada.');
+      }
+      if (laboratorySession.estado !== 'disponible') {
+        throw serviceError(409, 'LAB_SESSION_NOT_AVAILABLE', 'La sesión no está disponible para reservas.');
+      }
+      if (laboratorySession.inscritosCount >= laboratorySession.capacidadMax) {
+        throw serviceError(409, 'LAB_SESSION_FULL', 'La sesión alcanzó su capacidad máxima.');
+      }
+
+      const laboratoryGuard = await Laboratorio.updateOne(
+        { _id: laboratorySession.laboratorio, activo: true },
         { $inc: { reservationRevision: 1 } },
         { session }
       );
 
-      if (guardResult.matchedCount !== 1) {
-        await getLaboratoryById(laboratorioId, session);
+      if (laboratoryGuard.matchedCount !== 1) {
+        await getLaboratoryById(laboratorySession.laboratorio.toString(), session);
         throw serviceError(409, 'LABORATORY_INACTIVE', 'El laboratorio no está activo para nuevas reservas.');
       }
 
-      const overlappingReservation = await Reserva.findOne({
-        laboratorio: laboratoryObjectId,
-        estado: 'activa',
-        inicio: { $lt: end },
-        fin: { $gt: start }
-      })
-        .select('_id')
-        .session(session)
-        .lean();
+      const updatedSession = await SesionLaboratorio.findOneAndUpdate(
+        {
+          _id: laboratorySessionId,
+          estado: 'disponible',
+          $expr: { $lt: ['$inscritosCount', '$capacidadMax'] }
+        },
+        { $inc: { inscritosCount: 1 } },
+        { new: true, runValidators: true, session }
+      );
 
-      if (overlappingReservation) {
-        throw serviceError(409, 'RESERVATION_CONFLICT', 'El laboratorio ya tiene una reserva en ese horario.');
+      if (!updatedSession) {
+        throw serviceError(409, 'LAB_SESSION_FULL', 'La sesión alcanzó su capacidad máxima.');
+      }
+      if (updatedSession.inscritosCount >= updatedSession.capacidadMax) {
+        updatedSession.estado = 'llena';
+        await updatedSession.save({ session });
       }
 
       const [reservation] = await Reserva.create([{
-        laboratorio: laboratoryObjectId,
+        sesionLaboratorio: laboratorySessionId,
         usuario: userObjectId,
-        inicio: start,
-        fin: end,
         estado: 'activa'
       }], { session });
 
@@ -198,7 +182,5 @@ async function createReservation({ laboratorioId, inicio, fin, usuarioId }) {
 module.exports = {
   cancelOwnReservation,
   createReservation,
-  getOwnReservations,
-  parseDateTime,
-  universityLocalDate
+  getOwnReservations
 };

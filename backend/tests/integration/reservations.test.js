@@ -4,17 +4,16 @@ const request = require('supertest');
 const app = require('../../src/app');
 const Laboratorio = require('../../src/models/laboratorio.model');
 const Reserva = require('../../src/models/reserva.model');
+const SesionLaboratorio = require('../../src/models/sesion-laboratorio.model');
 const { connectTestDatabase } = require('../setup');
 
 const jwtSecret = 'test-only-signing-secret';
 const studentId = '66a000000000000000000001';
+const teacherId = '66a000000000000000000002';
+const adminId = '66a000000000000000000003';
 
 function token(userId = studentId, role = 'estudiante') {
-  return jwt.sign(
-    { rol: role },
-    jwtSecret,
-    { subject: userId, expiresIn: '1h' }
-  );
+  return jwt.sign({ rol: role }, jwtSecret, { subject: userId, expiresIn: '1h' });
 }
 
 function futureDate(daysFromNow = 3) {
@@ -22,8 +21,34 @@ function futureDate(daysFromNow = 3) {
   return `${date.toISOString().slice(0, 10)}T10:00:00-05:00`;
 }
 
-function dateAt(date, hour) {
-  return `${date.slice(0, 10)}T${String(hour).padStart(2, '0')}:00:00-05:00`;
+async function createSession(laboratory, overrides = {}) {
+  const start = new Date(futureDate());
+  return SesionLaboratorio.create({
+    laboratorio: laboratory._id,
+    docente: new mongoose.Types.ObjectId(teacherId),
+    materia: 'Física',
+    actividad: 'Práctica de laboratorio',
+    inicio: start,
+    fin: new Date(start.getTime() + 2 * 60 * 60 * 1000),
+    capacidadMax: laboratory.capacidad,
+    ...overrides
+  });
+}
+
+async function createReservation(laboratorySession, userId = studentId, estado = 'activa') {
+  if (estado === 'activa') {
+    laboratorySession.inscritosCount += 1;
+    if (laboratorySession.inscritosCount >= laboratorySession.capacidadMax) {
+      laboratorySession.estado = 'llena';
+    }
+    await laboratorySession.save();
+  }
+
+  return Reserva.create({
+    sesionLaboratorio: laboratorySession._id,
+    usuario: new mongoose.Types.ObjectId(userId),
+    estado
+  });
 }
 
 describe('POST /api/reservas', () => {
@@ -46,53 +71,42 @@ describe('POST /api/reservas', () => {
     delete process.env.JWT_SECRET;
   });
 
-  it('creates a valid reservation associated with the authenticated user', async () => {
-    const start = futureDate();
+  it('creates a reservation for an available laboratory session', async () => {
+    const laboratorySession = await createSession(laboratory);
     const response = await request(app)
       .post('/api/reservas')
       .set('Authorization', `Bearer ${token()}`)
-      .send({
-        laboratorioId: laboratory.id,
-        inicio: start,
-        fin: dateAt(start, 12)
-      })
+      .send({ sesionLaboratorioId: laboratorySession.id })
       .expect(201);
 
-    expect(response.body.data).toMatchObject({
+    expect(response.body.data).toEqual({
       id: expect.any(String),
-      laboratorio: laboratory.id,
+      sesionLaboratorio: laboratorySession.id,
       usuario: studentId,
-      inicio: expect.any(String),
-      fin: expect.any(String),
       estado: 'activa'
     });
-    expect(await Reserva.countDocuments()).toBe(1);
+    await expect(Reserva.countDocuments()).resolves.toBe(1);
+    await expect(SesionLaboratorio.findById(laboratorySession._id).lean()).resolves.toMatchObject({
+      inscritosCount: 1,
+      estado: 'disponible'
+    });
   });
 
-  it('allows a teacher to create a reservation associated with their identity', async () => {
-    const teacherId = '66a000000000000000000002';
-    const start = futureDate();
+  it('allows a teacher to reserve a session using their authenticated identity', async () => {
+    const laboratorySession = await createSession(laboratory);
     const response = await request(app)
       .post('/api/reservas')
       .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
-      .send({
-        laboratorioId: laboratory.id,
-        inicio: start,
-        fin: dateAt(start, 12)
-      })
+      .send({ sesionLaboratorioId: laboratorySession.id })
       .expect(201);
 
     expect(response.body.data.usuario).toBe(teacherId);
-    expect(await Reserva.countDocuments()).toBe(1);
+    await expect(Reserva.countDocuments()).resolves.toBe(1);
   });
 
   it('rejects unauthenticated users and administrators from creating reservations', async () => {
-    const start = futureDate();
-    const payload = {
-      laboratorioId: laboratory.id,
-      inicio: start,
-      fin: dateAt(start, 12)
-    };
+    const laboratorySession = await createSession(laboratory);
+    const payload = { sesionLaboratorioId: laboratorySession.id };
 
     await request(app)
       .post('/api/reservas')
@@ -101,153 +115,106 @@ describe('POST /api/reservas', () => {
 
     await request(app)
       .post('/api/reservas')
-      .set('Authorization', `Bearer ${token('66a000000000000000000003', 'administrador')}`)
+      .set('Authorization', `Bearer ${token(adminId, 'administrador')}`)
       .send(payload)
       .expect(403);
 
-    expect(await Reserva.countDocuments()).toBe(0);
+    await expect(Reserva.countDocuments()).resolves.toBe(0);
   });
 
-  it('rejects dates in the past', async () => {
-    const pastDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 10);
+  it.each([{}, { sesionLaboratorioId: 'invalid-id' }])(
+    'rejects missing or malformed session identifiers',
+    async (payload) => {
+      await request(app)
+        .post('/api/reservas')
+        .set('Authorization', `Bearer ${token()}`)
+        .send(payload)
+        .expect(400);
 
+      await expect(Reserva.countDocuments()).resolves.toBe(0);
+    }
+  );
+
+  it('returns not found for an unknown laboratory session', async () => {
     await request(app)
       .post('/api/reservas')
       .set('Authorization', `Bearer ${token()}`)
-      .send({
-        laboratorioId: laboratory.id,
-        inicio: `${pastDate}T10:00:00-05:00`,
-        fin: `${pastDate}T12:00:00-05:00`
-      })
-      .expect(400);
-
-    expect(await Reserva.countDocuments()).toBe(0);
-  });
-
-  it.each([
-    ['the end equals the start', (start) => start],
-    ['the end precedes the start', (start) => dateAt(start, 9)]
-  ])('rejects a range where %s', async (_description, endDate) => {
-    const start = futureDate();
-
-    await request(app)
-      .post('/api/reservas')
-      .set('Authorization', `Bearer ${token()}`)
-      .send({
-        laboratorioId: laboratory.id,
-        inicio: start,
-        fin: endDate(start)
-      })
-      .expect(400);
-
-    expect(await Reserva.countDocuments()).toBe(0);
-  });
-
-  it.each([
-    'not-a-date',
-    '2030-02-30T10:00:00-05:00',
-    '2030-10-20T10:00:00'
-  ])('rejects an invalid or timezone-ambiguous date: %s', async (date) => {
-    await request(app)
-      .post('/api/reservas')
-      .set('Authorization', `Bearer ${token()}`)
-      .send({
-        laboratorioId: laboratory.id,
-        inicio: date,
-        fin: futureDate()
-      })
-      .expect(400);
-
-    expect(await Reserva.countDocuments()).toBe(0);
-  });
-
-  it('rejects missing or malformed reservation input', async () => {
-    await request(app)
-      .post('/api/reservas')
-      .set('Authorization', `Bearer ${token()}`)
-      .send({ laboratorioId: 'invalid-id' })
-      .expect(400);
-
-    expect(await Reserva.countDocuments()).toBe(0);
-  });
-
-  it('returns not found for an unknown laboratory', async () => {
-    const start = futureDate();
-
-    await request(app)
-      .post('/api/reservas')
-      .set('Authorization', `Bearer ${token()}`)
-      .send({
-        laboratorioId: new mongoose.Types.ObjectId().toString(),
-        inicio: start,
-        fin: dateAt(start, 12)
-      })
+      .send({ sesionLaboratorioId: new mongoose.Types.ObjectId().toString() })
       .expect(404);
 
-    expect(await Reserva.countDocuments()).toBe(0);
+    await expect(Reserva.countDocuments()).resolves.toBe(0);
   });
 
-  it('rejects reservations for inactive laboratories', async () => {
-    await Laboratorio.updateOne({ _id: laboratory._id }, { activo: false });
-    const start = futureDate();
+  it.each(['llena', 'finalizada'])('rejects a session with state "%s"', async (estado) => {
+    const laboratorySession = await createSession(laboratory, { estado });
 
     await request(app)
       .post('/api/reservas')
       .set('Authorization', `Bearer ${token()}`)
-      .send({
-        laboratorioId: laboratory.id,
-        inicio: start,
-        fin: dateAt(start, 12)
-      })
+      .send({ sesionLaboratorioId: laboratorySession.id })
       .expect(409);
 
-    expect(await Reserva.countDocuments()).toBe(0);
+    await expect(Reserva.countDocuments()).resolves.toBe(0);
   });
 
-  it('rejects overlapping active reservations', async () => {
-    const start = futureDate();
-    await Reserva.create({
-      laboratorio: laboratory._id,
-      usuario: new mongoose.Types.ObjectId(studentId),
-      inicio: new Date(start),
-      fin: new Date(dateAt(start, 12))
+  it('rejects a session at capacity even if its state has not been updated', async () => {
+    const laboratorySession = await createSession(laboratory, {
+      capacidadMax: 1,
+      inscritosCount: 1
     });
 
     await request(app)
       .post('/api/reservas')
       .set('Authorization', `Bearer ${token()}`)
-      .send({
-        laboratorioId: laboratory.id,
-        inicio: dateAt(start, 11),
-        fin: dateAt(start, 13)
-      })
+      .send({ sesionLaboratorioId: laboratorySession.id })
       .expect(409);
 
-    expect(await Reserva.countDocuments()).toBe(1);
+    await expect(Reserva.countDocuments()).resolves.toBe(0);
   });
 
-  it('allows reservations whose intervals are contiguous', async () => {
-    const start = futureDate();
-    await Reserva.create({
-      laboratorio: laboratory._id,
-      usuario: new mongoose.Types.ObjectId(studentId),
-      inicio: new Date(start),
-      fin: new Date(dateAt(start, 12))
-    });
+  it('marks a session full at capacity and rejects further reservations', async () => {
+    const laboratorySession = await createSession(laboratory, { capacidadMax: 2 });
+    const payload = { sesionLaboratorioId: laboratorySession.id };
 
     await request(app)
       .post('/api/reservas')
       .set('Authorization', `Bearer ${token()}`)
-      .send({
-        laboratorioId: laboratory.id,
-        inicio: dateAt(start, 12),
-        fin: dateAt(start, 14)
-      })
+      .send(payload)
+      .expect(201);
+    await request(app)
+      .post('/api/reservas')
+      .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
+      .send(payload)
       .expect(201);
 
-    expect(await Reserva.countDocuments()).toBe(2);
+    await expect(SesionLaboratorio.findById(laboratorySession._id).lean()).resolves.toMatchObject({
+      inscritosCount: 2,
+      estado: 'llena'
+    });
+    await request(app)
+      .post('/api/reservas')
+      .set('Authorization', `Bearer ${token('66a000000000000000000004')}`)
+      .send(payload)
+      .expect(409);
+
+    await expect(Reserva.countDocuments()).resolves.toBe(2);
+  });
+
+  it('rejects reservations for sessions in an inactive laboratory', async () => {
+    const laboratorySession = await createSession(laboratory);
+    await Laboratorio.updateOne({ _id: laboratory._id }, { activo: false });
+
+    await request(app)
+      .post('/api/reservas')
+      .set('Authorization', `Bearer ${token()}`)
+      .send({ sesionLaboratorioId: laboratorySession.id })
+      .expect(409);
+
+    await expect(Reserva.countDocuments()).resolves.toBe(0);
+    await expect(SesionLaboratorio.findById(laboratorySession._id).lean()).resolves.toMatchObject({
+      inscritosCount: 0,
+      estado: 'disponible'
+    });
   });
 });
 
@@ -271,21 +238,14 @@ describe('GET /api/reservas and PATCH /api/reservas/:id/cancelar', () => {
     delete process.env.JWT_SECRET;
   });
 
-  it('lists only the authenticated user reservations with laboratory details', async () => {
-    const otherUserId = '66a000000000000000000002';
-    const start = futureDate();
-    const ownReservation = await Reserva.create({
-      laboratorio: laboratory._id,
-      usuario: new mongoose.Types.ObjectId(studentId),
-      inicio: new Date(start),
-      fin: new Date(dateAt(start, 12))
+  it('lists only the authenticated user reservations with session and laboratory details', async () => {
+    const ownSession = await createSession(laboratory);
+    const otherSession = await createSession(laboratory, {
+      materia: 'Química',
+      actividad: 'Preparación de soluciones'
     });
-    await Reserva.create({
-      laboratorio: laboratory._id,
-      usuario: new mongoose.Types.ObjectId(otherUserId),
-      inicio: new Date(dateAt(start, 13)),
-      fin: new Date(dateAt(start, 14))
-    });
+    const ownReservation = await createReservation(ownSession, studentId);
+    await createReservation(otherSession, teacherId);
 
     const response = await request(app)
       .get('/api/reservas')
@@ -295,13 +255,16 @@ describe('GET /api/reservas and PATCH /api/reservas/:id/cancelar', () => {
     expect(response.body.data).toHaveLength(1);
     expect(response.body.data[0]).toMatchObject({
       id: ownReservation.id,
+      sesionLaboratorio: ownSession.id,
       laboratorio: {
         id: laboratory.id,
         nombre: laboratory.nombre,
         ubicacion: laboratory.ubicacion
       },
-      inicio: expect.any(String),
-      fin: expect.any(String),
+      materia: ownSession.materia,
+      actividad: ownSession.actividad,
+      inicio: ownSession.inicio.toISOString(),
+      fin: ownSession.fin.toISOString(),
       estado: 'activa'
     });
   });
@@ -312,14 +275,9 @@ describe('GET /api/reservas and PATCH /api/reservas/:id/cancelar', () => {
       .expect(401);
   });
 
-  it('cancels an owned active reservation and makes its interval available', async () => {
-    const start = futureDate();
-    const reservation = await Reserva.create({
-      laboratorio: laboratory._id,
-      usuario: new mongoose.Types.ObjectId(studentId),
-      inicio: new Date(start),
-      fin: new Date(dateAt(start, 12))
-    });
+  it('cancels an owned reservation and frees a place in its session', async () => {
+    const laboratorySession = await createSession(laboratory, { capacidadMax: 1 });
+    const reservation = await createReservation(laboratorySession);
 
     const cancellation = await request(app)
       .patch(`/api/reservas/${reservation.id}/cancelar`)
@@ -328,31 +286,27 @@ describe('GET /api/reservas and PATCH /api/reservas/:id/cancelar', () => {
 
     expect(cancellation.body.data).toMatchObject({
       id: reservation.id,
+      sesionLaboratorio: laboratorySession.id,
       estado: 'cancelada'
     });
     await expect(Reserva.findById(reservation._id).lean()).resolves.toMatchObject({
       estado: 'cancelada'
     });
+    await expect(SesionLaboratorio.findById(laboratorySession._id).lean()).resolves.toMatchObject({
+      inscritosCount: 0,
+      estado: 'disponible'
+    });
 
     await request(app)
       .post('/api/reservas')
-      .set('Authorization', `Bearer ${token('66a000000000000000000002')}`)
-      .send({
-        laboratorioId: laboratory.id,
-        inicio: start,
-        fin: dateAt(start, 12)
-      })
+      .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
+      .send({ sesionLaboratorioId: laboratorySession.id })
       .expect(201);
   });
 
   it('does not allow cancelling another user reservation', async () => {
-    const start = futureDate();
-    const reservation = await Reserva.create({
-      laboratorio: laboratory._id,
-      usuario: new mongoose.Types.ObjectId('66a000000000000000000002'),
-      inicio: new Date(start),
-      fin: new Date(dateAt(start, 12))
-    });
+    const laboratorySession = await createSession(laboratory);
+    const reservation = await createReservation(laboratorySession, teacherId);
 
     await request(app)
       .patch(`/api/reservas/${reservation.id}/cancelar`)
@@ -365,14 +319,8 @@ describe('GET /api/reservas and PATCH /api/reservas/:id/cancelar', () => {
   });
 
   it('rejects cancelling an already cancelled or nonexistent reservation', async () => {
-    const start = futureDate();
-    const cancelledReservation = await Reserva.create({
-      laboratorio: laboratory._id,
-      usuario: new mongoose.Types.ObjectId(studentId),
-      inicio: new Date(start),
-      fin: new Date(dateAt(start, 12)),
-      estado: 'cancelada'
-    });
+    const laboratorySession = await createSession(laboratory);
+    const cancelledReservation = await createReservation(laboratorySession, studentId, 'cancelada');
 
     await request(app)
       .patch(`/api/reservas/${cancelledReservation.id}/cancelar`)
