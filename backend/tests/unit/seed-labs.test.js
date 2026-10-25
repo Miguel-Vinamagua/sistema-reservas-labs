@@ -54,10 +54,11 @@ describe('seed-labs', () => {
 
   it('creates linked, valid and idempotent reservations', async () => {
     const reservationModel = createMemoryModel();
+    const sessionModel = createMemoryModel();
     const laboratories = [
-      { _id: 'lab-1', activo: true },
-      { _id: 'lab-2', activo: true },
-      { _id: 'lab-3', activo: true }
+      { _id: 'lab-1', activo: true, capacidad: 20 },
+      { _id: 'lab-2', activo: true, capacidad: 18 },
+      { _id: 'lab-3', activo: true, capacidad: 24 }
     ];
     const referenceDate = new Date('2030-01-01T00:00:00.000Z');
 
@@ -65,34 +66,45 @@ describe('seed-labs', () => {
       laboratories,
       'user-1',
       reservationModel,
-      referenceDate
+      referenceDate,
+      sessionModel,
+      'teacher-1'
     );
     const secondRun = await seedReservations(
       laboratories,
       'user-1',
       reservationModel,
-      referenceDate
+      referenceDate,
+      sessionModel,
+      'teacher-1'
     );
 
     expect(firstRun).toEqual({ created: 4, existing: 0, skipped: 0 });
     expect(secondRun).toEqual({ created: 0, existing: 4, skipped: 0 });
     expect(reservationModel.records).toHaveLength(4);
+    expect(sessionModel.records).toHaveLength(4);
     expect(reservationModel.records).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          laboratorio: 'lab-1',
+          sesionLaboratorio: expect.any(String),
           usuario: 'user-1',
           estado: 'cancelada'
         }),
         expect.objectContaining({
-          laboratorio: 'lab-1',
+          sesionLaboratorio: expect.any(String),
           usuario: 'user-1',
           estado: 'activa'
         })
       ])
     );
     for (const reservation of reservationModel.records) {
-      expect(reservation.fin.getTime()).toBeGreaterThan(reservation.inicio.getTime());
+      const linkedSession = sessionModel.records.find(
+        ({ _id }) => _id === reservation.sesionLaboratorio
+      );
+      expect(linkedSession).toBeDefined();
+      expect(linkedSession.fin.getTime()).toBeGreaterThan(linkedSession.inicio.getTime());
+      expect(linkedSession.laboratorio).toBeDefined();
+      expect(linkedSession.docente).toBe('teacher-1');
     }
   });
 });

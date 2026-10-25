@@ -6,6 +6,17 @@ const SesionLaboratorio = require('../../src/models/sesion-laboratorio.model');
 const Reserva = require('../../src/models/reserva.model');
 
 describe('Usuario model', () => {
+  it('has a revision counter for serializing student reservation decisions', () => {
+    const user = new Usuario({
+      correo: 'estudiante@utmachala.edu.ec',
+      passwordHash: 'hash',
+      rol: 'estudiante'
+    });
+
+    expect(Usuario.schema.path('reservationRevision')).toBeDefined();
+    expect(user.reservationRevision).toBe(0);
+  });
+
   it('uses usuarios and requires a supported role', () => {
     const missingRole = new Usuario({
       correo: 'test@universidad.edu',
@@ -163,7 +174,10 @@ describe('Reserva model', () => {
     expect(Reserva.schema.path('usuario').options.ref).toBe('Usuario');
     expect(indexes).toContainEqual([
       { sesionLaboratorio: 1, usuario: 1 },
-      expect.any(Object)
+      expect.objectContaining({
+        unique: true,
+        partialFilterExpression: { estado: 'activa' }
+      })
     ]);
   });
 });

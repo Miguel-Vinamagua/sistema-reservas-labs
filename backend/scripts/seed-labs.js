@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const { connectDatabase } = require('../src/config/database');
 const Laboratorio = require('../src/models/laboratorio.model');
 const Reserva = require('../src/models/reserva.model');
+const SesionLaboratorio = require('../src/models/sesion-laboratorio.model');
 const Usuario = require('../src/models/usuario.model');
 
 const laboratoryData = [
@@ -44,41 +45,58 @@ function reservationWindow(referenceDate, daysFromReference) {
 
 async function seedReservation(
   reservationModel,
-  laboratoryId,
+  sessionModel,
+  laboratory,
   userId,
+  docenteId,
   window,
   estado
 ) {
-  const reservationData = {
-    laboratorio: laboratoryId,
-    usuario: userId,
-    ...window,
-    estado
-  };
+  const laboratorySession = await sessionModel.findOne({
+    laboratorio: laboratory._id,
+    docente: docenteId,
+    inicio: window.inicio
+  }) || await sessionModel.create({
+    laboratorio: laboratory._id,
+    docente: docenteId,
+    materia: 'Práctica de laboratorio',
+    actividad: 'Sesión de laboratorio de muestra',
+    fecha: new Date(Date.UTC(
+      window.inicio.getUTCFullYear(),
+      window.inicio.getUTCMonth(),
+      window.inicio.getUTCDate()
+    )),
+    inicio: window.inicio,
+    fin: window.fin,
+    cupos: laboratory.capacidad,
+    inscritosCount: 0,
+    estado: 'abierta'
+  });
 
   const existing = await reservationModel.findOne({
-    laboratorio: laboratoryId,
+    sesionLaboratorio: laboratorySession._id,
     usuario: userId,
-    inicio: window.inicio,
-    fin: window.fin
+    estado
   });
   if (existing) {
     return 'existing';
   }
 
   if (estado === 'activa') {
-    const conflict = await reservationModel.findOne({
-      laboratorio: laboratoryId,
-      estado: 'activa',
-      inicio: { $lt: window.fin },
-      fin: { $gt: window.inicio }
-    });
-    if (conflict) {
-      return 'skipped';
+    laboratorySession.inscritosCount += 1;
+    if (laboratorySession.inscritosCount >= laboratorySession.cupos) {
+      laboratorySession.estado = 'llena';
+    }
+    if (typeof laboratorySession.save === 'function') {
+      await laboratorySession.save();
     }
   }
 
-  await reservationModel.create(reservationData);
+  await reservationModel.create({
+    sesionLaboratorio: laboratorySession._id,
+    usuario: userId,
+    estado
+  });
   return 'created';
 }
 
@@ -86,7 +104,9 @@ async function seedReservations(
   laboratories,
   userId,
   reservationModel = Reserva,
-  referenceDate = new Date()
+  referenceDate = new Date(),
+  sessionModel = SesionLaboratorio,
+  docenteId = userId
 ) {
   let created = 0;
   let existing = 0;
@@ -96,8 +116,10 @@ async function seedReservations(
   for (const [index, laboratory] of activeLaboratories.entries()) {
     const result = await seedReservation(
       reservationModel,
-      laboratory._id,
+      sessionModel,
+      laboratory,
       userId,
+      docenteId,
       reservationWindow(referenceDate, 30 + index),
       'activa'
     );
@@ -109,8 +131,10 @@ async function seedReservations(
   if (activeLaboratories.length > 0) {
     const result = await seedReservation(
       reservationModel,
-      activeLaboratories[0]._id,
+      sessionModel,
+      activeLaboratories[0],
       userId,
+      docenteId,
       reservationWindow(referenceDate, 30 + activeLaboratories.length),
       'cancelada'
     );
@@ -127,15 +151,23 @@ async function main() {
 
   try {
     await connectDatabase();
-    const user = await Usuario.findOne().sort({ _id: 1 });
+    const user = await Usuario.findOne({ rol: 'estudiante' }).sort({ _id: 1 });
     if (!user) {
-      throw new Error('No hay usuarios registrados. Ejecuta primero el seed de usuarios.');
+      throw new Error('No hay estudiantes registrados. Ejecuta primero el seed de usuarios.');
+    }
+    const teacher = await Usuario.findOne({ rol: 'docente' }).sort({ _id: 1 });
+    if (!teacher) {
+      throw new Error('No hay docentes registrados. Ejecuta primero el seed de usuarios.');
     }
 
     const laboratoryResult = await seedLaboratories();
     const reservationResult = await seedReservations(
       laboratoryResult.laboratories,
-      user._id
+      user._id,
+      Reserva,
+      new Date(),
+      SesionLaboratorio,
+      teacher._id
     );
 
     console.log(

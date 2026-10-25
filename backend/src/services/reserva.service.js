@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Reserva = require('../models/reserva.model');
 const SesionLaboratorio = require('../models/sesion-laboratorio.model');
 const Laboratorio = require('../models/laboratorio.model');
+const Usuario = require('../models/usuario.model');
 const { getLaboratoryById, serviceError } = require('./laboratorio.service');
 
 function serializeReservation(reservation) {
@@ -16,6 +17,11 @@ function serializeReservation(reservation) {
 function serializeOwnedReservation(reservation) {
   const laboratorySession = reservation.sesionLaboratorio;
   const laboratory = laboratorySession?.laboratorio;
+  const teacher = laboratorySession?.docente;
+  const effectiveState = reservation.estado === 'activa' &&
+    laboratorySession?.fin <= new Date()
+    ? 'finalizada'
+    : reservation.estado;
 
   return {
     id: reservation._id.toString(),
@@ -27,11 +33,20 @@ function serializeOwnedReservation(reservation) {
         ubicacion: laboratory.ubicacion
       }
       : null,
+    docente: teacher
+      ? {
+        id: teacher._id.toString(),
+        correo: teacher.correo
+      }
+      : null,
     materia: laboratorySession?.materia ?? null,
     actividad: laboratorySession?.actividad ?? null,
+    fecha: laboratorySession?.fecha?.toISOString() ?? null,
     inicio: laboratorySession?.inicio?.toISOString() ?? null,
     fin: laboratorySession?.fin?.toISOString() ?? null,
-    estado: reservation.estado
+    capacidadMax: laboratorySession?.cupos ?? null,
+    inscritosCount: laboratorySession?.inscritosCount ?? null,
+    estado: effectiveState
   };
 }
 
@@ -48,7 +63,10 @@ async function getOwnReservations(usuarioId) {
   const reservations = await Reserva.find({ usuario: userObjectId })
     .populate({
       path: 'sesionLaboratorio',
-      populate: { path: 'laboratorio', select: 'nombre ubicacion' }
+      populate: [
+        { path: 'laboratorio', select: 'nombre ubicacion' },
+        { path: 'docente', select: 'correo' }
+      ]
     })
     .sort({ _id: 1 })
     .lean();
@@ -97,6 +115,13 @@ async function cancelOwnReservation(reservationId, usuarioId) {
       if (!laboratorySession) {
         throw new Error('No se pudo actualizar el contador de inscritos de la sesión.');
       }
+      if (laboratorySession.fin <= new Date()) {
+        throw serviceError(
+          409,
+          'RESERVATION_NOT_CANCELLABLE',
+          'No se puede cancelar una reserva cuya sesión ya terminó.'
+        );
+      }
 
       if (laboratorySession.estado !== 'cancelada') {
         if (laboratorySession.inscritosCount < 1) {
@@ -124,6 +149,21 @@ async function createReservation({ sesionLaboratorioId, usuarioId }) {
     'El identificador de la sesión de laboratorio'
   );
   const userObjectId = toObjectId(usuarioId, 'El usuario autenticado');
+
+  // 1. Verificamos y actualizamos si la sesión ya expiró FUERA de la transacción principal
+  // para asegurarnos de que el cambio a 'finalizada' se guarde permanentemente en la BD.
+  const preliminarySession = await SesionLaboratorio.findById(laboratorySessionId);
+  if (!preliminarySession) {
+    throw serviceError(404, 'LAB_SESSION_NOT_FOUND', 'No se encontró la sesión solicitada.');
+  }
+  if (preliminarySession.fin <= new Date()) {
+    if (preliminarySession.estado === 'abierta' || preliminarySession.estado === 'llena') {
+      preliminarySession.estado = 'finalizada';
+      await preliminarySession.save();
+    }
+    throw serviceError(400, 'LAB_SESSION_ENDED', 'La sesión ya terminó y no admite reservas.');
+  }
+
   const session = await mongoose.startSession();
   let createdReservation;
 
@@ -131,14 +171,67 @@ async function createReservation({ sesionLaboratorioId, usuarioId }) {
     await session.withTransaction(async () => {
       const laboratorySession = await SesionLaboratorio.findById(laboratorySessionId)
         .session(session);
+      
       if (!laboratorySession) {
         throw serviceError(404, 'LAB_SESSION_NOT_FOUND', 'No se encontró la sesión solicitada.');
       }
+      if (laboratorySession.estado === 'cancelada' || laboratorySession.estado === 'finalizada') {
+        throw serviceError(400, 'LAB_SESSION_NOT_AVAILABLE', 'La sesión cancelada o finalizada no admite reservas.');
+      }
+      if (laboratorySession.estado === 'llena') {
+        throw serviceError(409, 'LAB_SESSION_FULL', 'La sesión alcanzó su capacidad máxima.');
+      }
       if (laboratorySession.estado !== 'abierta') {
-        throw serviceError(409, 'LAB_SESSION_NOT_AVAILABLE', 'La sesión no está disponible para reservas.');
+        throw serviceError(400, 'LAB_SESSION_NOT_AVAILABLE', 'La sesión no está disponible para reservas.');
       }
       if (laboratorySession.inscritosCount >= laboratorySession.cupos) {
         throw serviceError(409, 'LAB_SESSION_FULL', 'La sesión alcanzó su capacidad máxima.');
+      }
+
+      const studentGuard = await Usuario.updateOne(
+        { _id: userObjectId },
+        { $inc: { reservationRevision: 1 } },
+        { session }
+      );
+      if (studentGuard.matchedCount !== 1) {
+        throw serviceError(404, 'STUDENT_NOT_FOUND', 'No se encontró el estudiante autenticado.');
+      }
+
+      const existingReservation = await Reserva.exists({
+        sesionLaboratorio: laboratorySessionId,
+        usuario: userObjectId,
+        estado: 'activa'
+      }).session(session);
+      if (existingReservation) {
+        throw serviceError(
+          409,
+          'RESERVATION_DUPLICATE',
+          'Ya tienes una reserva activa para esta sesión.'
+        );
+      }
+
+      const activeReservations = await Reserva.find({
+        usuario: userObjectId,
+        estado: 'activa'
+      })
+        .populate({
+          path: 'sesionLaboratorio',
+          select: 'inicio fin'
+        })
+        .session(session)
+        .lean();
+
+      const conflictingSession = activeReservations.find(({ sesionLaboratorio: s }) => {
+        if (!s) return false;
+        return s.inicio < laboratorySession.fin && s.fin > laboratorySession.inicio;
+      });
+
+      if (conflictingSession) {
+        throw serviceError(
+          409,
+          'RESERVATION_TIME_CONFLICT',
+          'El horario se solapa con otra reserva activa tuya.'
+        );
       }
 
       const laboratoryGuard = await Laboratorio.updateOne(
@@ -178,6 +271,15 @@ async function createReservation({ sesionLaboratorioId, usuarioId }) {
 
       createdReservation = serializeReservation(reservation);
     });
+  } catch (error) {
+    if (error.code === 11000) {
+      throw serviceError(
+        409,
+        'RESERVATION_DUPLICATE',
+        'Ya tienes una reserva activa para esta sesión.'
+      );
+    }
+    throw error;
   } finally {
     await session.endSession();
   }

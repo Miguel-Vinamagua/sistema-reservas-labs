@@ -1,110 +1,113 @@
-# Implementation Plan: Sesiones de laboratorio
+# Plan de implementación: Sesiones de laboratorio
 
-**Branch**: `002-sesiones-laboratorio` | **Date**: 2026-10-25 | **Spec**: [spec.md](./spec.md)
+**Rama**: `002-sesiones-laboratorio` | **Fecha**: 2026-10-25 | **Especificación**: [spec.md](./spec.md)
 
-**Input**: Feature specification from `specs/002-sesiones-laboratorio/spec.md`
+## Resumen
 
-## Summary
+Completar el ciclo docente-estudiante de sesiones de laboratorio. Los docentes programan sesiones sobre laboratorios activos; los estudiantes consultan las sesiones, reservan cupos, cancelan reservas antes del fin, consultan su historial y revisan una agenda de sesiones en curso o futuras. La sesión es la unidad de programación y reserva. Las horas se presentan en `America/Guayaquil`.
 
-Plan para incorporar al sistema de reservas de laboratorios el rol docente con gestión de sesiones de laboratorio (materia, actividad, fecha y horario, cupos) y la inscripción de estudiantes con control de cupos, manteniendo las reglas de negocio y la arquitectura existente del backend y el frontend.
+## Contexto técnico
 
-## Technical Context
+**Lenguajes y versiones**: JavaScript sobre Node.js 20; TypeScript para Angular según el proyecto.
+**Dependencias principales**: Express, Mongoose, Angular standalone, Jest y Supertest.
+**Persistencia**: MongoDB; colecciones de sesiones, materias, reservas, laboratorios y usuarios. No existe herramienta de migración documentada.
+**Pruebas**: Jest/Supertest con base dedicada `reservas_test`; pruebas Angular de comportamiento visible.
+**Plataforma**: aplicación web y servidor Node.js; CI en GitHub Actions.
 
-**Language/Version**: JavaScript on Node.js 20; TypeScript for Angular (version selected by the project scaffold)
+## Restricciones y decisiones de diseño
 
-**Primary Dependencies**: Express, Mongoose, Angular with standalone components, Jest, Supertest
+- La reserva nueva referencia una sesión y al usuario; deja de almacenar laboratorio y horario como datos primarios de reserva.
+- Se conservan los nombres de sesión `capacidadMax`, `inscritosCount` y `estado`; estados: `disponible`, `llena`, `cancelada`, `finalizada`.
+- El backend es autoridad para permisos, solapamientos, duplicidad, tiempo de fin, cupos y consistencia transaccional. La UI solo complementa validaciones.
+- La asignación y liberación del cupo, el estado de sesión y la reserva se coordinan atómicamente para impedir sobrecupo.
+- La hora actual se evalúa en cada consulta; no se añaden tareas programadas. El cliente refresca periódicamente el horario.
+- El frontend reutiliza rutas, servicios y componentes existentes de reservas/laboratorios cuando encajen. Una pantalla independiente de horarios solo se justifica si no existe una vista que represente ese propósito.
+- Pruebas antes del código de producción, conforme a la constitución. Se adaptan pruebas antiguas; no se borran para conseguir verde.
+- Los registros legados se conservan o migran con estrategia explícita y no destructiva. No se convierten intervalos antiguos en sesiones inventadas.
+- Los secretos y URI se proporcionan fuera del repositorio.
 
-**Storage**: MongoDB; Mongoose models define the `sesiones` and `materias` collections; no migration tooling.
+## Revisión de la constitución
 
-**Testing**: Backend unit/integration tests with Jest and Supertest against the dedicated `reservas_test` database; frontend tests for user-visible behavior with Angular/Karma/Jasmine.
-
-**Target Platform**: Browser-based university application and Node.js 20 server; GitHub Actions CI
-
-**Performance Goals**: Not specified by the feature.
-
-**Constraints**:
-
-- En esta etapa no se modifican los endpoints actuales de reservas.
-- Las reglas de negocio DEBEN aplicarse en el backend; el frontend PUEDE mejorar la experiencia pero NO DEBE reemplazar la validación del servidor.
-- El acceso a datos y las reglas de negocio DEBEN implementarse en el servidor; el frontend DEBE comunicarse con el backend mediante su API y no conectarse directamente a MongoDB.
-- Los secretos y cadenas de conexión DEBEN proveerse mediante variables de entorno fuera del control de versiones.
-
-**Scale/Scope**: Collections for sessions and subjects plus the authentication, session and enrollment flows in the specification. No public account registration, payments, email notifications, reports, or reservation rescheduling in this stage.
-
-## Constitution Check
-
-| Principle / constraint | Gate | Plan |
+| Principio / restricción | Estado | Evidencia en este plan |
 |---|---|---|
-| Specification first | PASS | This plan and design artifacts derive from the active feature specification. |
-| Test-driven development | PASS | Define backend Jest/Supertest tests and relevant frontend tests before production implementation tasks; execute session, quota and concurrency cases against the test database. |
-| Backend enforcement | PASS | Express services enforce session rules, quotas and overlaps; frontend validation is supplemental. |
-| GitHub Flow and peer review | PASS | Implementation remains on the feature branch and is integrated through a reviewed pull request. |
-| Conventional commits | PASS | Implementation commits use the constitution's allowed conventional prefixes. |
-| CI quality gate | PASS | GitHub Actions runs the backend test suite with a transaction-capable MongoDB service and frontend checks before merge. |
-| Secret/configuration hygiene | PASS | `MONGODB_URI` is environment-provided; only a non-secret example may be documented. |
-| Angular / Express / MongoDB constraints | PASS | The selected stack and server-side data access match the constitution. |
-| Spanish documentation | PASS | Documentation will be written in Spanish. |
+| Especificación primero | Cumple | El plan deriva de `spec.md` y los contratos se actualizan antes de implementación. |
+| TDD | Cumple | Cada fase de implementación comienza con pruebas de regresión/aceptación que deben fallar por el motivo esperado. |
+| Reglas en backend | Cumple | Autorización, solapamiento, duplicidad, fin, cupos y atomicidad se verifican en el servidor. |
+| GitHub Flow y revisión | Cumple | Cambios se realizan en rama enfocada y se integran mediante PR revisado. |
+| Commits convencionales | Cumple | Los commits usan prefijos convencionales definidos por la constitución. |
+| CI | Cumple | La integración requiere pruebas backend y frontend verdes con MongoDB transaccional para las pruebas que lo necesiten. |
+| Higiene de secretos | Cumple | No se documentan ni incorporan secretos; la configuración es externa. |
+| Simplicidad, español y stack | Cumple | Se reutiliza Angular/Express/Mongoose y la documentación está en español. |
 
-## Project Structure
-
-### Documentation (this feature)
-
-```text
-specs/002-sesiones-laboratorio/
-├── plan.md
-├── data-model.md
-├── api-contract.md
-└── tasks.md
-```
-
-### Source Code (repository root)
+## Estructura existente prevista
 
 ```text
 backend/
 ├── src/
-│   ├── app.js
-│   ├── server.js
-│   ├── config/
-│   ├── middleware/
 │   ├── models/
 │   ├── routes/
+│   ├── controllers/
 │   └── services/
+├── scripts/
 └── tests/
-    ├── integration/
-    └── unit/
+    ├── unit/
+    └── integration/
 
-frontend/
-├── src/
-│   └── app/
-│       ├── core/
-│       ├── features/
-│       └── shared/
+frontend/src/app/
+├── core/
+├── features/
+│   ├── laboratorios/
+│   ├── reservas/
+│   └── sesiones/
+└── shared/
 ```
 
-**Structure Decision**: Reuse the existing two-project layout. Keep the backend layered as models, routes, services and controllers; keep the Angular frontend standalone components grouped by feature. Add session and materia handling within the existing modules before introducing new layers.
+**Decisión de estructura**: mantener las capas y módulos existentes. Adaptar `reservas.service.js`, rutas/controladores ya presentes y los servicios/componentes frontend existentes. No agregar una capa genérica nueva para horarios o reservas. Cualquier componente nuevo de tabla horaria requiere confirmar que no puede reutilizarse razonablemente una vista existente.
 
-## Phase 0: Research
+## Fases de trabajo
 
-See [research.md](../001-reservas-laboratorios/research.md) for prior decisions about reservation concurrency and transactions. New research may be required for quota concurrency behavior in this feature.
+### A. Docente backend
 
-## Phase 1: Design & Contracts
+Esta fase está marcada como completada en `tasks.md`: modelos y seed, creación de sesiones, validación de cupos y solapamiento del laboratorio.
 
-- [Data model](./data-model.md): Mongoose collection shapes, references, validation and session lifecycle.
-- [REST API contract](./api-contract.md): authenticated session creation, listing, cancellation and student enrollment contracts.
+### B. Docente frontend
 
-### Constitution Check (post-design)
+Completar mediante TDD el panel existente de creación y gestión de sesiones.
 
-| Principle / constraint | Gate | Design evidence |
-|---|---|---|
-| Specification first | PASS | This plan and design artifacts derive from the active feature specification. |
-| TDD and rule coverage | PASS | The design identifies acceptance cases for session creation, quotas, overlaps, enrollment and concurrency; implementation tasks must add tests first. |
-| Backend enforcement | PASS | Express services enforce session rules, quotas and overlaps; frontend validation is supplemental. |
-| Overlap correctness under concurrency | PASS | Existing reservation concurrency mechanism is reused for quota control; CI uses a replica set. |
-| Required stack and separation | PASS | Angular standalone frontend, Node.js 20/Express API, Mongoose models, `app.js`/`server.js` separation. |
-| CI, secrets, and Spanish documentation | PASS | MongoDB-backed CI, environment-only `MONGODB_URI`, Spanish documentation. |
+### C. Estudiante backend — pruebas primero
 
-No constitution violations or unresolved technical-context clarifications remain.
+1. Extender pruebas de integración para permisos, reserva por `sesionLaboratorioId`, sesión no disponible/terminada, duplicidad, solapamiento del estudiante, cancelación e historial.
+2. Añadir prueba concurrente para el límite de `capacidadMax` y cobertura unitaria del índice/regla de unicidad.
+3. Adaptar pruebas de seed del esquema antiguo sin retirar sus afirmaciones de idempotencia.
+4. Solo después implementar la consistencia transaccional de reservas, cancelación, estado efectivo finalizado e historial.
 
-## Complexity Tracking
+### D. Estudiante frontend — pruebas primero
 
-No constitution violations. The quota concurrency requirement is handled with the existing reservation concurrency mechanism; no new architectural layer is required in this stage.
+1. Actualizar pruebas del formulario y servicio para selección de sesiones y envío del ID de sesión.
+2. Añadir pruebas para detalles/cupos, sesión llena, errores del servidor, estado del historial, cancelación confirmada y fin de sesión.
+3. Añadir pruebas de pantalla de horarios, orden, campos, zona horaria, exclusión al fin y actualización periódica.
+4. Solo después adaptar componentes, servicios, rutas, navegación y guards existentes.
+
+### E. Horarios backend — pruebas primero
+
+1. Probar antes el endpoint de agenda con sesiones pasadas, en curso, futuras, llenas y canceladas; verificar el límite temporal `fin <= ahora`.
+2. Probar campos requeridos, orden y presentación horaria.
+3. Implementar el listado calculado por consulta y documentar la ruta definitiva.
+
+### F. Migración y verificación integral
+
+1. Determinar con pruebas cómo conservar reservas legadas que contienen laboratorio/horario pero no sesión.
+2. Migrar seed, fixtures y persistencia al esquema nuevo sin eliminación de datos/pruebas.
+3. Ejecutar las suites completas backend y frontend; verificar que cubren la especificación y que ninguna prueba se debilitó.
+
+## Riesgos y preguntas pendientes
+
+- La política exacta de solapamiento entre laboratorios debe resolverse conforme a la pregunta abierta en `spec.md` y la constitución.
+- La cancelación de una sesión con reservas ya creadas requiere definir el estado visible de esas reservas y el cómputo de cupos.
+- El código/documentación actuales usan `cupos` y `abierta`, mientras el contrato actualizado conserva `capacidadMax` y `disponible`; la transición requiere decidir compatibilidad y migración antes de tocar producción.
+- Las reservas legadas no se pueden asociar a sesiones con seguridad sin una regla de migración explícita.
+- No se debe declarar completada una fase mientras las pruebas nuevas estén fallando o las existentes hayan sido quitadas.
+
+## Complejidad
+
+No se propone una capa arquitectónica nueva. La parte de mayor riesgo es mantener capacidad, reserva e historial consistentes con concurrencia y datos históricos, por lo que se cubre con pruebas de integración y migración antes de implementación.

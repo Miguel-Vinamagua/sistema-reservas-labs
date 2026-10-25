@@ -5,6 +5,7 @@ const app = require('../../src/app');
 const Laboratorio = require('../../src/models/laboratorio.model');
 const Materia = require('../../src/models/materia.model');
 const SesionLaboratorio = require('../../src/models/sesion-laboratorio.model');
+const Usuario = require('../../src/models/usuario.model');
 const { connectTestDatabase } = require('../setup');
 
 const jwtSecret = process.env.JWT_SECRET || 'secreto-jwt';
@@ -180,6 +181,12 @@ describe('/api/sesiones-laboratorio', () => {
     it('lists only available sessions for active laboratories', async () => {
       const laboratory = await createLaboratory();
       const inactiveLaboratory = await createLaboratory({ nombre: 'Laboratorio inactivo', activo: false });
+      await Usuario.create({
+        _id: teacherId,
+        correo: 'docente@utmachala.edu.ec',
+        passwordHash: 'test-password-hash',
+        rol: 'docente'
+      });
       const available = await createSession(laboratory);
       await createSession(laboratory, { estado: 'llena' });
       await createSession(laboratory, { estado: 'cancelada' });
@@ -192,7 +199,22 @@ describe('/api/sesiones-laboratorio', () => {
 
       expect(response.body.data).toHaveLength(1);
       expect(response.body.data[0].id).toBe(available.id);
-      expect(response.body.data[0].estado).toBe('abierta');
+      expect(response.body.data[0]).toMatchObject({
+        laboratorio: {
+          id: laboratory.id,
+          nombre: laboratory.nombre,
+          ubicacion: laboratory.ubicacion
+        },
+        docente: {
+          id: teacherId,
+          correo: 'docente@utmachala.edu.ec'
+        },
+        materia: available.materia,
+        actividad: available.actividad,
+        capacidadMax: available.cupos,
+        inscritosCount: 0,
+        estado: 'disponible'
+      });
     });
 
     it('finalizes expired open sessions before returning available sessions', async () => {
@@ -233,6 +255,76 @@ describe('/api/sesiones-laboratorio', () => {
 
     it('requires authentication', async () => {
       await request(app).get('/api/sesiones-laboratorio').expect(401);
+    });
+  });
+
+  describe('GET /horarios', () => {
+    it('returns current and future non-cancelled sessions ordered with complete student details', async () => {
+      const laboratory = await createLaboratory();
+      await Usuario.create({
+        _id: teacherId,
+        correo: 'docente@utmachala.edu.ec',
+        passwordHash: 'test-password-hash',
+        rol: 'docente'
+      });
+      const now = Date.now();
+      const laterSession = await createSession(laboratory, {
+        inicio: new Date(now + 2 * 60 * 60 * 1000),
+        fin: new Date(now + 3 * 60 * 60 * 1000),
+        materia: 'Matemática',
+        actividad: 'Taller'
+      });
+      const inProgressSession = await createSession(laboratory, {
+        inicio: new Date(now - 30 * 60 * 1000),
+        fin: new Date(now + 30 * 60 * 1000),
+        estado: 'llena'
+      });
+      const cancelledSession = await createSession(laboratory, {
+        inicio: new Date(now + 60 * 60 * 1000),
+        fin: new Date(now + 90 * 60 * 1000),
+        estado: 'cancelada'
+      });
+      await createSession(laboratory, {
+        inicio: new Date(now - 2 * 60 * 60 * 1000),
+        fin: new Date(now - 60 * 1000)
+      });
+
+      const response = await request(app)
+        .get('/api/sesiones-laboratorio/horarios')
+        .set('Authorization', `Bearer ${token(studentId, 'estudiante')}`)
+        .expect(200);
+
+      expect(response.body.data.map(({ id }) => id)).toEqual([
+        inProgressSession.id,
+        laterSession.id
+      ]);
+      expect(response.body.data[0]).toMatchObject({
+        laboratorio: {
+          id: laboratory.id,
+          nombre: laboratory.nombre,
+          ubicacion: laboratory.ubicacion
+        },
+        docente: {
+          id: teacherId,
+          correo: 'docente@utmachala.edu.ec'
+        },
+        materia: inProgressSession.materia,
+        actividad: inProgressSession.actividad,
+        capacidadMax: inProgressSession.cupos,
+        inscritosCount: inProgressSession.inscritosCount,
+        estado: 'llena'
+      });
+      expect(response.body.data.map(({ id }) => id)).not.toContain(cancelledSession.id);
+    });
+
+    it('requires a student token', async () => {
+      await request(app)
+        .get('/api/sesiones-laboratorio/horarios')
+        .expect(401);
+      await request(app)
+        .get('/api/sesiones-laboratorio/horarios')
+        .set('Authorization', `Bearer ${token(adminId, 'administrador')}`)
+        .expect(403);
     });
   });
 

@@ -5,12 +5,24 @@ const app = require('../../src/app');
 const Laboratorio = require('../../src/models/laboratorio.model');
 const Reserva = require('../../src/models/reserva.model');
 const SesionLaboratorio = require('../../src/models/sesion-laboratorio.model');
+const Usuario = require('../../src/models/usuario.model');
 const { connectTestDatabase } = require('../setup');
 
 const jwtSecret = 'test-only-signing-secret';
 const studentId = '66a000000000000000000001';
 const teacherId = '66a000000000000000000002';
 const adminId = '66a000000000000000000003';
+const testUsers = [
+  [studentId, 'estudiante'],
+  [teacherId, 'docente'],
+  [adminId, 'administrador'],
+  ['66a000000000000000000004', 'estudiante'],
+  ['66a000000000000000000005', 'estudiante'],
+  ['66a000000000000000000006', 'estudiante'],
+  ['66a000000000000000000007', 'estudiante'],
+  ['66a000000000000000000008', 'estudiante'],
+  ['66a000000000000000000009', 'estudiante']
+];
 
 function token(userId = studentId, role = 'estudiante') {
   return jwt.sign({ rol: role }, jwtSecret, { subject: userId, expiresIn: '1h' });
@@ -61,6 +73,12 @@ describe('POST /api/reservas', () => {
   });
 
   beforeEach(async () => {
+    await Usuario.create(testUsers.map(([id, rol], index) => ({
+      _id: id,
+      correo: `test-${index}@utmachala.edu.ec`,
+      passwordHash: 'test-password-hash',
+      rol
+    })));
     laboratory = await Laboratorio.create({
       nombre: 'Laboratorio de prueba',
       capacidad: 20,
@@ -93,16 +111,15 @@ describe('POST /api/reservas', () => {
     });
   });
 
-  it('allows a teacher to reserve a session using their authenticated identity', async () => {
+  it('rejects teachers from reserving sessions', async () => {
     const laboratorySession = await createSession(laboratory);
-    const response = await request(app)
+    await request(app)
       .post('/api/reservas')
       .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
       .send({ sesionLaboratorioId: laboratorySession.id })
-      .expect(201);
+      .expect(403);
 
-    expect(response.body.data.usuario).toBe(teacherId);
-    await expect(Reserva.countDocuments()).resolves.toBe(1);
+    await expect(Reserva.countDocuments()).resolves.toBe(0);
   });
 
   it('rejects unauthenticated users and administrators from creating reservations', async () => {
@@ -146,8 +163,11 @@ describe('POST /api/reservas', () => {
     await expect(Reserva.countDocuments()).resolves.toBe(0);
   });
 
-  it.each(['llena', 'cancelada'])('rejects a session with state "%s"', async (estado) => {
-    const laboratorySession = await createSession(laboratory, { estado });
+  it('rejects a full session with conflict', async () => {
+    const laboratorySession = await createSession(laboratory, {
+      estado: 'llena',
+      inscritosCount: laboratory.capacidad
+    });
 
     await request(app)
       .post('/api/reservas')
@@ -156,6 +176,73 @@ describe('POST /api/reservas', () => {
       .expect(409);
 
     await expect(Reserva.countDocuments()).resolves.toBe(0);
+  });
+
+  it('rejects cancelled and expired sessions without creating a reservation', async () => {
+    const cancelledSession = await createSession(laboratory, { estado: 'cancelada' });
+    const expiredStart = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const expiredSession = await createSession(laboratory, {
+      inicio: expiredStart,
+      fin: new Date(Date.now() - 60 * 1000),
+      estado: 'abierta'
+    });
+
+    await request(app)
+      .post('/api/reservas')
+      .set('Authorization', `Bearer ${token()}`)
+      .send({ sesionLaboratorioId: cancelledSession.id })
+      .expect(400);
+    await request(app)
+      .post('/api/reservas')
+      .set('Authorization', `Bearer ${token()}`)
+      .send({ sesionLaboratorioId: expiredSession.id })
+      .expect(400);
+
+    await expect(Reserva.countDocuments()).resolves.toBe(0);
+    await expect(SesionLaboratorio.findById(expiredSession._id).lean())
+      .resolves.toMatchObject({ estado: 'finalizada' });
+  });
+
+  it('rejects duplicate active reservations for the same student and session', async () => {
+    const laboratorySession = await createSession(laboratory);
+    await createReservation(laboratorySession, studentId);
+
+    const response = await request(app)
+      .post('/api/reservas')
+      .set('Authorization', `Bearer ${token()}`)
+      .send({ sesionLaboratorioId: laboratorySession.id })
+      .expect(409);
+
+    expect(response.body.error.code).toBe('RESERVATION_DUPLICATE');
+    await expect(Reserva.countDocuments()).resolves.toBe(1);
+    await expect(SesionLaboratorio.findById(laboratorySession._id).lean())
+      .resolves.toMatchObject({ inscritosCount: 1 });
+  });
+
+  it('rejects overlapping active reservations across laboratories', async () => {
+    const firstSession = await createSession(laboratory);
+    const otherLaboratory = await Laboratorio.create({
+      nombre: 'Segundo laboratorio',
+      capacidad: 12,
+      ubicacion: 'Bloque B'
+    });
+    const overlappingStart = new Date(firstSession.inicio.getTime() + 30 * 60 * 1000);
+    const secondSession = await createSession(otherLaboratory, {
+      inicio: overlappingStart,
+      fin: new Date(overlappingStart.getTime() + 60 * 60 * 1000)
+    });
+    await createReservation(firstSession, '66a000000000000000000004'); // <--- ID del usuario que hace la segunda petición
+
+    const response = await request(app)
+      .post('/api/reservas')
+      .set('Authorization', `Bearer ${token('66a000000000000000000004')}`)
+      .send({ sesionLaboratorioId: secondSession.id })
+      .expect(409);
+
+    expect(response.body.error.code).toBe('RESERVATION_TIME_CONFLICT');
+    await expect(Reserva.countDocuments()).resolves.toBe(1);
+    await expect(SesionLaboratorio.findById(secondSession._id).lean())
+      .resolves.toMatchObject({ inscritosCount: 0 });
   });
 
   it('rejects a session at capacity even if its state has not been updated', async () => {
@@ -184,7 +271,7 @@ describe('POST /api/reservas', () => {
       .expect(201);
     await request(app)
       .post('/api/reservas')
-      .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
+      .set('Authorization', `Bearer ${token('66a000000000000000000005')}`)
       .send(payload)
       .expect(201);
 
@@ -199,7 +286,7 @@ describe('POST /api/reservas', () => {
       .expect(409);
 
     await expect(Reserva.countDocuments()).resolves.toBe(2);
-  });
+  },10000);
 
   it('rejects reservations for sessions in an inactive laboratory', async () => {
     const laboratorySession = await createSession(laboratory);
@@ -228,6 +315,12 @@ describe('GET /api/reservas and PATCH /api/reservas/:id/cancelar', () => {
   });
 
   beforeEach(async () => {
+    await Usuario.create(testUsers.map(([id, rol], index) => ({
+      _id: id,
+      correo: `test-${index}@utmachala.edu.ec`,
+      passwordHash: 'test-password-hash',
+      rol
+    })));
     laboratory = await Laboratorio.create({
       nombre: 'Laboratorio de consulta',
       capacidad: 18,
@@ -262,8 +355,14 @@ describe('GET /api/reservas and PATCH /api/reservas/:id/cancelar', () => {
         nombre: laboratory.nombre,
         ubicacion: laboratory.ubicacion
       },
+      docente: {
+        id: teacherId,
+        correo: 'test-1@utmachala.edu.ec'
+      },
       materia: ownSession.materia,
       actividad: ownSession.actividad,
+      capacidadMax: ownSession.cupos,
+      inscritosCount: 1,
       inicio: ownSession.inicio.toISOString(),
       fin: ownSession.fin.toISOString(),
       estado: 'activa'
@@ -274,6 +373,38 @@ describe('GET /api/reservas and PATCH /api/reservas/:id/cancelar', () => {
     await request(app)
       .get('/api/reservas')
       .expect(401);
+  });
+
+  it('exposes ended active reservations as finalizadas and keeps cancelled status', async () => {
+    const expiredStart = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const expiredSession = await createSession(laboratory, {
+      inicio: expiredStart,
+      fin: new Date(Date.now() - 60 * 1000)
+    });
+    const futureSession = await createSession(laboratory, {
+      inicio: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      fin: new Date(Date.now() + 25 * 60 * 60 * 1000)
+    });
+    await createReservation(expiredSession, studentId);
+    await createReservation(futureSession, studentId, 'cancelada');
+
+    const response = await request(app)
+      .get('/api/reservas')
+      .set('Authorization', `Bearer ${token()}`)
+      .expect(200);
+
+    expect(response.body.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        sesionLaboratorio: expiredSession.id,
+        estado: 'finalizada',
+        materia: expiredSession.materia,
+        actividad: expiredSession.actividad
+      }),
+      expect.objectContaining({
+        sesionLaboratorio: futureSession.id,
+        estado: 'cancelada'
+      })
+    ]));
   });
 
   it('cancels an owned reservation and frees a place in its session', async () => {
@@ -300,9 +431,42 @@ describe('GET /api/reservas and PATCH /api/reservas/:id/cancelar', () => {
 
     await request(app)
       .post('/api/reservas')
-      .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
+      .set('Authorization', `Bearer ${token('66a000000000000000000006')}`)
       .send({ sesionLaboratorioId: laboratorySession.id })
       .expect(201);
+  });
+
+  it('does not allow cancelling a reservation after its session ended', async () => {
+    const pastEnd = new Date(Date.now() - 60 * 1000);
+    const laboratorySession = await createSession(laboratory, {
+      inicio: new Date(pastEnd.getTime() - 60 * 60 * 1000),
+      fin: pastEnd
+    });
+    const reservation = await createReservation(laboratorySession);
+
+    await request(app)
+      .patch(`/api/reservas/${reservation.id}/cancelar`)
+      .set('Authorization', `Bearer ${token()}`)
+      .expect(409);
+
+    await expect(Reserva.findById(reservation._id).lean())
+      .resolves.toMatchObject({ estado: 'activa' });
+    await expect(SesionLaboratorio.findById(laboratorySession._id).lean())
+      .resolves.toMatchObject({ inscritosCount: 1 });
+  });
+
+  it('forbids non-students from listing or cancelling reservations', async () => {
+    const laboratorySession = await createSession(laboratory);
+    const reservation = await createReservation(laboratorySession);
+
+    await request(app)
+      .get('/api/reservas')
+      .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
+      .expect(403);
+    await request(app)
+      .patch(`/api/reservas/${reservation.id}/cancelar`)
+      .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
+      .expect(403);
   });
 
   it('does not allow cancelling another user reservation', async () => {

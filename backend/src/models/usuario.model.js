@@ -21,6 +21,11 @@ const usuarioSchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: ['estudiante', 'docente', 'administrador']
+    },
+    reservationRevision: {
+      type: Number,
+      required: true,
+      default: 0
     }
   },
   { collection: 'usuarios' }

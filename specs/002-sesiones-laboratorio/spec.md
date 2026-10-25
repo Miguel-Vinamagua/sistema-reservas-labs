@@ -1,111 +1,122 @@
-# Feature Specification: Sesiones de laboratorio
+# Especificación: Sesiones de laboratorio
 
-**Feature Branch**: `002-sesiones-laboratorio`
+**Rama**: `002-sesiones-laboratorio`
+**Fecha**: 2026-10-25
+**Estado**: Borrador
+**Entrada**: Completar el ciclo de sesiones de laboratorio para docentes y estudiantes, incluyendo inscripción, consulta de horarios e historial de reservas.
 
-**Created**: 2026-10-25
+## Contexto y alcance
 
-**Status**: Draft
+El sistema contempla tres roles. El administrador mantiene la gestión de laboratorios. El docente consulta laboratorios activos, crea sesiones asociadas a una materia y actividad, y gestiona sus propias sesiones. El estudiante consulta las sesiones programadas por docentes, reserva un cupo, consulta y cancela sus reservas, y revisa la programación académica.
 
-**Input**: Contexto del cambio: el sistema pasa a operar con tres roles con comportamientos distintos. El administrador: sin cambios, gestiona laboratorios. El docente (`docente@utmachala.edu.ec`): inicia sesión, consulta los laboratorios, selecciona uno y crea una sesión de laboratorio indicando laboratorio, fecha, hora de inicio, hora de fin, materia y actividad; la sesión queda disponible para que los estudiantes se inscriban. Puede ver sus sesiones y cancelar las suyas. El estudiante: inicia sesión, ve las sesiones disponibles, selecciona una, presiona "Reservar cupo" y el sistema registra su reserva; cuando se alcanzan los cupos la sesión pasa a estado "llena" y no admite más reservas.
-
-Decisiones ya tomadas para este cambio:
-
-1. Nueva colección `sesiones` con laboratorio, docente, materia, fecha, inicio, fin, actividad, cupos y estado (abierta, llena, cancelada).
-2. Cupos por defecto igual a la capacidad del laboratorio; el docente puede reducirlos pero no superarlos.
-3. Dos sesiones activas del mismo laboratorio no pueden solaparse (intervalos con inicio incluido y fin excluido); se mantienen las reglas de fecha no pasada y fin posterior al inicio.
-4. Nueva colección `materias` con nombre, código y docente asociado, cargada por seed por ahora; el docente solo puede usar sus materias.
-5. La actividad es texto obligatorio dentro de la sesión.
-6. Un estudiante no puede reservar dos veces la misma sesión y el control de cupos debe resistir solicitudes simultáneas.
-7. En esta etapa no se modifican los endpoints actuales de reservas.
-
-## User Scenarios & Testing *(mandatory)*
-
-### User Story 1 - Docente programa una sesión de laboratorio con materia y cupos (Priority: P1)
-
-Un docente inicia sesión, consulta los laboratorios, selecciona uno y crea una sesión de laboratorio indicando laboratorio, fecha, hora de inicio, hora de fin, materia y actividad. La sesión queda disponible para que los estudiantes se inscriban.
-
-**Why this priority**: Sin la programación de sesiones no existe el ciclo de materias, cupos e inscripción.
-
-**Independent Test**: Con un docente autenticado y un laboratorio activo, el docente puede crear una sesión válida que queda registrada como disponible para inscripción.
-
-**Acceptance Scenarios**:
-
-1. **Given** que el docente está autenticado, **When** envía los datos de la sesión con laboratorio, materia, actividad, fecha, inicio y fin válidos, **Then** la sesión se crea con estado `abierta` y cupos iniciales.
-2. **Given** que el docente define cupos, **When** los cupos son un entero positivo menor o igual a la capacidad del laboratorio, **Then** se guardan en la sesión.
-3. **Given** que el docente define cupos, **When** los cupos superan la capacidad del laboratorio, **Then** la creación se rechaza.
-4. **Given** que el docente registra la actividad, **When** la actividad está vacía, **Then** la creación se rechaza.
-
-### User Story 2 - Estudiante se inscribe en una sesión disponible y el cupo se gestiona (Priority: P1)
-
-Un estudiante inicia sesión, ve las sesiones disponibles, selecciona una, presiona "Reservar cupo" y el sistema registra su reserva. Cuando se alcanzan los cupos la sesión pasa a estado `llena` y no admite más reservas.
-
-**Why this priority**: La inscripción con cupos es el flujo central del cambio.
-
-**Independent Test**: Con una sesión con cupo disponible, un estudiante puede inscribirse; al alcanzarse el cupo la sesión pasa a `llena`.
-
-**Acceptance Scenarios**:
-
-1. **Given** que existe una sesión con estado `abierta` y cupo disponible, **When** el estudiante autenticado presiona "Reservar cupo", **Then** se registra su reserva y se consume el cupo.
-2. **Given** que la sesión alcanzó sus cupos, **When** otro estudiante intenta inscribirse, **Then** la solicitud se rechaza.
-3. **Given** que el estudiante ya se inscribió en la sesión, **When** intenta inscribirse nuevamente, **Then** la solicitud se rechaza.
-
-### User Story 3 - Docente consulta y cancela sus sesiones (Priority: P2)
-
-El docente consulta el estado de sus sesiones y cancela una activa; la cancelación libera los cupos.
-
-**Why this priority**: La cancelación es necesaria para liberar cupos y mantener la consistencia.
-
-**Independent Test**: Con sesiones creadas por el docente, este puede listarlas y cancelar una activa.
-
-**Acceptance Scenarios**:
-
-1. **Given** que el docente tiene sesiones, **When** consulta, **Then** ve sus sesiones con materia, actividad, cupos, inscripción y estado.
-2. **Given** que el docente cancela una sesión activa, **When** confirma, **Then** la sesión pasa a `cancelada` y los cupos quedan liberados.
-
-### Edge Cases
-
-- Sesión llena: no admite más inscripciones.
-- Sesión cancelada: no admite inscripciones.
-- Doble inscripción: el estudiante no puede inscribirse dos veces en la misma sesión.
-- Materia de otro docente: el docente solo puede usar materias asociadas a él.
-- Solapamiento: dos sesiones activas del mismo laboratorio con intervalos que se cruzan.
-- Concurrencia: solicitudes simultáneas sobre cupos; como máximo una inscripción efectiva.
-
-## Requirements *(mandatory)*
-
-### Functional Requirements
-
-- **FR-001**: El sistema MUST permitir que un docente autenticado cree una sesión de laboratorio indicando laboratorio, materia, actividad, fecha, hora de inicio y hora de fin.
-- **FR-002**: El sistema MUST asignar cupos por defecto igual a la capacidad del laboratorio; el docente puede reducir cupos pero no superarlos.
-- **FR-003**: El sistema MUST rechazar dos sesiones activas del mismo laboratorio cuyos intervalos se solapen.
-- **FR-004**: El sistema MUST rechazar la creación de una sesión con fecha anterior a la actual o con fin no posterior a la inicio.
-- **FR-005**: El sistema MUST permitir el alta de materias con nombre, código y docente asociado mediante seed, y MUST restringir el uso de materias asociadas a otros docentes.
-- **FR-006**: El sistema MUST exigir actividad obligatoria dentro de la sesión.
-- **FR-007**: El sistema MUST impedir que un estudiante se inscriba dos veces en la misma sesión.
-- **FR-008**: El sistema MUST gestionar el estado de la sesión (`abierta`, `llena`, `cancelada`) y el consumo de cupos.
-- **FR-009**: El sistema MUST liberar cupos cuando la sesión se cancela.
-- **FR-010**: El sistema MUST resistir solicitudes simultáneas sobre cupos.
-
-### Key Entities *(include if feature involves data)*
-
-- **SesionLaboratorio**: laboratorio, docente, materia, fecha, inicio, fin, actividad, cupos, estado (`abierta`, `llena`, `cancelada`).
-- **Materia**: nombre, código y docente asociado.
-
-## Success Criteria *(mandatory)*
-
-### Measurable Outcomes
-
-- **SC-001**: En pruebas de aceptación, el 100% de las sesiones creadas con reglas válidas quedan disponibles para inscripción y respetan los cupos definidos.
-- **SC-002**: En pruebas de aceptación, el 100% de las inscripciones con cupo disponible se registran; al agotarse los cupos la sesión pasa a `llena` y se rechaza la siguiente.
-- **SC-003**: En pruebas de aceptación, no se permiten dobles inscripciones ni solapamientos, y el control de cupos resiste solicitudes concurrentes.
-
-## Assumptions
-
-- Los usuarios docente y estudiante están provisionados con credenciales.
-- Las materias se cargan por seed en esta etapa.
-- No se requieren notificaciones por correo en esta etapa.
+La sesión es la unidad seleccionable y reservable. El estudiante no crea fechas ni horarios de reserva: elige una sesión ya programada. Las horas mostradas al usuario se interpretan y presentan en la zona `America/Guayaquil`.
 
 ## Cambios respecto a 001
 
-- Las historias de usuario 1, 2 y 3 de `specs/001-reservas-laboratorios/spec.md` quedan reemplazadas en esta etapa por el ciclo de sesiones de laboratorio descrito en esta especificación: la US1 (consultar laboratorios y reservar) se transforma en la programación de sesiones con materia/actividad/cupo para docentes y en la inscripción de estudiantes; la US2 se mantiene en el ciclo de inscripción/cancelación de sesiones; la US3 (administrador) no presenta cambios.
-- En esta etapa no se modifican los endpoints actuales de reservas.
+- El modelo de reserva de `specs/001-reservas-laboratorios/spec.md`, que asociaba directamente una reserva con un laboratorio, una fecha y horas de inicio y fin, se reemplaza por una reserva asociada obligatoriamente a una sesión y al estudiante que la realiza. El laboratorio y el horario se obtienen de la sesión referenciada.
+- La reserva mantiene su identidad e historial; no se borran las reservas antiguas ni sus pruebas. Los datos legados se migrarán o transformarán mediante una tarea explícita, conservando su información y evitando que registros sin sesión válida se presenten como reservas de sesiones nuevas.
+- Las pruebas que verifican el modelo antiguo, los cuerpos de reserva con `laboratorioId`/`inicio`/`fin` y los fixtures del seed deben actualizarse para usar `sesionLaboratorioId` y sesiones relacionadas. Se conservan y adaptan las pruebas existentes; no se eliminan para hacer pasar la nueva implementación.
+- Los nombres de campos de sesión establecidos para esta especificación son `capacidadMax`, `inscritosCount` y `estado`. El estado de una sesión con cupos se denomina `disponible`; al ocupar todos los cupos pasa a `llena`.
+- El flujo de administración de laboratorios se mantiene fuera de este alcance.
+
+## Historias de usuario y pruebas
+
+### US1 — Docente programa sesiones (Prioridad: P1)
+
+Un docente autenticado selecciona un laboratorio activo, materia y actividad, y programa fecha, inicio, fin y cupos. Puede consultar sus sesiones y cancelar una propia.
+
+**Prueba independiente**: un docente puede crear y consultar una sesión válida y cancelar una sesión propia; otro rol no puede realizar operaciones reservadas al docente.
+
+**Criterios de aceptación**:
+
+1. La creación válida produce una sesión `disponible`; si no se especifican cupos, `capacidadMax` se asigna con la capacidad del laboratorio.
+2. Los cupos deben ser enteros positivos y no superar la capacidad del laboratorio.
+3. `fin` debe ser posterior a `inicio`, la sesión no puede programarse en el pasado y la actividad no puede estar vacía.
+4. No se admiten sesiones activas solapadas en el mismo laboratorio.
+5. El docente solo puede gestionar sus propias sesiones y usar materias asociadas a él.
+
+### US2 — Estudiante reserva una sesión disponible (Prioridad: P1)
+
+El estudiante abre la pestaña **Laboratorios**, consulta sesiones creadas por docentes, elige una y presiona **Reservar cupo**. El sistema registra la reserva asociada a esa sesión y al estudiante autenticado.
+
+**Prueba independiente**: con una sesión disponible y cupos, un estudiante puede reservar; se actualizan el contador y el estado. Al alcanzar la capacidad, la sesión deja de admitir reservas.
+
+**Criterios de aceptación**:
+
+1. Cada elemento reservable muestra laboratorio, ubicación, materia, docente, actividad, fecha, horario y cupos libres/total.
+2. No se admite una segunda reserva activa del mismo estudiante para la misma sesión.
+3. No se admite una reserva si el horario se solapa con otra reserva activa del estudiante.
+4. No se admite reservar sesiones canceladas, llenas o cuya hora de fin haya llegado.
+5. Cuando `inscritosCount` alcanza `capacidadMax`, la sesión pasa a `llena` y la acción de reserva se desactiva; el backend sigue rechazando solicitudes.
+6. Solicitudes simultáneas no pueden superar `capacidadMax` ni registrar más reservas efectivas que los cupos disponibles.
+
+### US3 — Estudiante consulta y cancela sus reservas (Prioridad: P1)
+
+El estudiante consulta el historial de sus reservas y puede cancelar una reserva antes de que termine la sesión.
+
+**Prueba independiente**: el estudiante ve únicamente sus reservas con sus datos de sesión y puede cancelar una reserva propia elegible, liberando el cupo.
+
+**Criterios de aceptación**:
+
+1. El historial muestra los estados `activa`, `cancelada` o `finalizada`. `finalizada` indica que la sesión vinculada ya terminó; no requiere que la reserva se elimine.
+2. Cancelar antes de que termine la sesión cambia la reserva a `cancelada` y libera el cupo.
+3. Si la sesión estaba `llena`, liberar un cupo devuelve su estado a `disponible`.
+4. No se puede cancelar una reserva ajena ni una reserva de una sesión cuyo fin ya llegó.
+
+### US4 — Estudiante consulta horarios (Prioridad: P2)
+
+El estudiante consulta una tabla de sesiones en curso o futuras que no estén canceladas.
+
+**Prueba independiente**: la tabla contiene las sesiones no canceladas cuyo fin todavía no ha llegado, en orden cronológico, y excluye una sesión en el instante en que alcanza su fin.
+
+**Criterios de aceptación**:
+
+1. La tabla muestra laboratorio, ubicación, materia, docente, actividad, fecha, horario, cupos ocupados/total y estado.
+2. Las sesiones se ordenan por fecha y hora de inicio ascendente.
+3. Las sesiones con estado `cancelada` o con `fin <= hora actual` no se incluyen.
+4. La pantalla vuelve a consultar periódicamente; la inclusión y exclusión se determina en cada consulta usando la hora actual, sin depender de tareas programadas.
+5. Fechas y horas se presentan en `America/Guayaquil`.
+
+## Requisitos funcionales
+
+- **FR-001**: El docente autenticado puede crear sesiones asociadas a un laboratorio activo, a una materia propia y a su identidad autenticada.
+- **FR-002**: El backend asigna `capacidadMax` por defecto a partir de la capacidad del laboratorio y valida cualquier valor explícito.
+- **FR-003**: El backend rechaza sesiones con datos inválidos, actividad vacía, horario pasado, fin no posterior al inicio o solapamiento con otra sesión activa del mismo laboratorio.
+- **FR-004**: El estudiante autenticado puede consultar sesiones reservables y crear una reserva enviando la sesión seleccionada; la identidad se toma de la autenticación.
+- **FR-005**: El backend impide reservas duplicadas activas para la misma sesión y reservas del estudiante con horarios solapados.
+- **FR-006**: El backend rechaza reservas de sesiones llenas, canceladas o terminadas, y cambia el estado a `llena` al llegar a `capacidadMax`.
+- **FR-007**: El control transaccional de cupos garantiza que solicitudes concurrentes no excedan `capacidadMax`.
+- **FR-008**: El estudiante puede consultar solo sus reservas, incluyendo datos de la sesión vinculada y los estados `activa`, `cancelada` y `finalizada`.
+- **FR-009**: El estudiante puede cancelar una reserva propia antes del fin de la sesión; la operación libera un cupo y puede cambiar `llena` a `disponible`.
+- **FR-010**: El estudiante puede consultar sesiones en curso o futuras no canceladas, en orden de inicio, con la información necesaria para organizar su horario.
+- **FR-011**: La lista de horarios se calcula en cada consulta con la hora actual; la interfaz la actualiza periódicamente y excluye sesiones cuando `fin <= ahora`.
+- **FR-012**: El frontend muestra validaciones, cupos libres y estados de forma coherente, pero las reglas de autorización, duplicidad, solapamiento y capacidad siempre se validan en el backend.
+- **FR-013**: Los datos legados de reserva se migran o se retienen de forma segura y trazable; ninguna prueba existente se elimina para ocultar incompatibilidades.
+
+## Entidades clave
+
+- **SesionLaboratorio**: laboratorio, docente, materia, actividad, fecha, inicio, fin, `capacidadMax`, `inscritosCount` y `estado`.
+- **Reserva**: referencia obligatoria a `SesionLaboratorio`, referencia obligatoria al estudiante y estado de reserva. `finalizada` se presenta en el historial cuando terminó la sesión vinculada.
+- **Materia**: nombre, código y docente asociado.
+
+## Criterios de éxito
+
+- **SC-001**: El 100% de los intentos de exceder la capacidad, duplicar una reserva activa o reservar una sesión no elegible se rechaza en pruebas de aceptación.
+- **SC-002**: En las pruebas de concurrencia, el total de reservas activas nunca supera `capacidadMax`.
+- **SC-003**: Una cancelación elegible libera exactamente un cupo y el historial conserva la reserva como cancelada.
+- **SC-004**: El estudiante puede identificar y seleccionar una sesión con todos los datos requeridos sin introducir manualmente laboratorio, fecha ni horario.
+- **SC-005**: En cada consulta de horarios, el resultado excluye sesiones canceladas y sesiones cuyo fin haya llegado, y mantiene el orden cronológico.
+
+## Supuestos
+
+- Los estudiantes, docentes, laboratorios y materias ya están provisionados.
+- Una reserva cancelada conserva su historial y no ocupa cupo.
+- Los cupos ocupados se representan mediante `inscritosCount`; el total se representa mediante `capacidadMax`.
+- Los endpoints y tareas de implementación se alinean con las rutas existentes cuando sea posible; cualquier modificación contractual queda documentada antes de implementarse.
+
+## Preguntas abiertas
+
+- ¿La regla de solapamiento de reservas del estudiante debe considerar cualquier laboratorio o solo sesiones del mismo laboratorio? La especificación exige impedir solapamiento entre reservas activas del estudiante, pero la constitución vigente nombra explícitamente el mismo laboratorio.
+- Cuando un docente cancela una sesión que ya tiene reservas activas, ¿esas reservas deben pasar automáticamente a `cancelada`, mantenerse como activas con una sesión cancelada o recibir otro estado derivado?
+- ¿Las operaciones de reservas deben restringirse exclusivamente al rol estudiante? Las rutas actuales permiten también al rol docente, mientras que este flujo describe al estudiante.
+- ¿Qué política se aplicará a reservas históricas del modelo 001 que no puedan vincularse inequívocamente a una sesión existente: conservarlas como registros legados de solo lectura o archivarlas fuera de la colección operativa?

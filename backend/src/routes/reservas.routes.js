@@ -8,12 +8,12 @@ const {
 
 const router = express.Router();
 
-router.get('/', authenticate, authorizeRoles('estudiante', 'docente'), listOwnReservations);
-router.post('/', authenticate, authorizeRoles('estudiante', 'docente'), createOwnReservation);
+router.get('/', authenticate, authorizeRoles('estudiante'), listOwnReservations);
+router.post('/', authenticate, authorizeRoles('estudiante'), createOwnReservation);
 router.patch(
   '/:id/cancelar',
   authenticate,
-  authorizeRoles('estudiante', 'docente'),
+  authorizeRoles('estudiante'),
   cancelOwnReservation
 );
 
