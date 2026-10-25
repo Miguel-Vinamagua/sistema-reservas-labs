@@ -15,7 +15,7 @@ Los modelos Mongoose definen las colecciones; no se usan migraciones.
 | `fin` | Date | Requerido; debe ser posterior a `inicio`. |
 | `actividad` | String | Requerido; texto obligatorio dentro de la sesión. |
 | `cupos` | Number | Entero positivo; por defecto la capacidad del laboratorio. |
-| `estado` | String | Requerido; enum `abierta`, `llena`, `cancelada`; valor inicial `abierta`. |
+| `estado` | String | Requerido; enum `abierta`, `llena`, `cancelada`, `finalizada`; valor inicial `abierta`. |
 
 ## Materia (`materias`)
 
@@ -30,7 +30,7 @@ Los modelos Mongoose definen las colecciones; no se usan migraciones.
 
 - Un docente puede tener muchas sesiones; cada sesión pertenece a un docente y a un laboratorio.
 - Una materia pertenece a un docente.
-- Una sesión inicia en estado `abierta` con cupos; al inscribirse un estudiante consume cupo; cuando se agotan los cupos la sesión pasa a `llena`; la cancelación pasa a `cancelada` y libera cupos.
+- Una sesión inicia en estado `abierta` con cupos; al inscribirse un estudiante consume cupo; cuando se agotan los cupos la sesión pasa a `llena`; la cancelación pasa a `cancelada` y libera cupos. Al consultar las sesiones, las que superaron su hora de fin pasan a `finalizada`.
 
 ## Reglas de validación
 

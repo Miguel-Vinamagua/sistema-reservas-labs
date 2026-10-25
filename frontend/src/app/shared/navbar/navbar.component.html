@@ -4,7 +4,7 @@
     <!-- Logo / Título -->
     <a
       class="group flex items-center space-x-3 rounded-md text-slate-800 no-underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700"
-      [routerLink]="authenticated ? '/home' : '/login'"
+      [routerLink]="homeRoute"
       aria-label="Reservas de laboratorios, inicio"
     >
       <span class="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-700 to-emerald-900 text-sm font-bold text-white shadow-sm transition-transform duration-200 group-hover:scale-105">
@@ -26,7 +26,7 @@
         } @else if (teacher) {
           <a
             class="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-emerald-900"
-            routerLink="/docente/sesiones"
+            routerLink="/docente"
             routerLinkActive="bg-emerald-50/80 font-semibold text-emerald-900"
             ariaCurrentWhenActive="page"
           >Mis sesiones</a>
@@ -117,7 +117,7 @@
         @if (administrator) {
           <a class="rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-emerald-900" routerLink="/laboratorios/admin" (click)="menuOpen.set(false)">Administrar</a>
         } @else if (teacher) {
-          <a class="rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-emerald-900" routerLink="/docente/sesiones" (click)="menuOpen.set(false)">Mis sesiones</a>
+          <a class="rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-emerald-900" routerLink="/docente" (click)="menuOpen.set(false)">Mis sesiones</a>
           <a class="rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-emerald-900" routerLink="/laboratorios" (click)="menuOpen.set(false)">Laboratorios</a>
         } @else {
           <a class="rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-emerald-900" routerLink="/laboratorios" (click)="menuOpen.set(false)">Laboratorios</a>

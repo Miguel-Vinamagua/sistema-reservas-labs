@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Laboratorio = require('../models/laboratorio.model');
 const Materia = require('../models/materia.model');
 const SesionLaboratorio = require('../models/sesion-laboratorio.model');
+const { finalizeExpiredSessions } = require('../services/laboratorio.service');
 
 function sendError(res, error) {
   const isValidationError =
@@ -188,6 +189,7 @@ async function createSession(req, res) {
 
 async function listAvailableSessions(_req, res) {
   try {
+    await finalizeExpiredSessions();
     const sessions = await SesionLaboratorio.find({
       estado: 'abierta',
       $expr: { $lt: ['$inscritosCount', '$cupos'] }
@@ -214,6 +216,7 @@ async function listOwnSessions(req, res) {
       throw validationError('El usuario autenticado no es válido.');
     }
 
+    await finalizeExpiredSessions();
     const sessions = await SesionLaboratorio.find({ docente: req.auth.userId })
       .populate('laboratorio', 'nombre ubicacion activo')
       .sort({ inicio: 1, _id: 1 })
@@ -241,7 +244,7 @@ async function cancelSession(req, res) {
     const laboratorySession = await SesionLaboratorio.findOne({
       _id: req.params.id,
       docente: req.auth.userId,
-      estado: { $ne: 'cancelada' }
+      estado: { $in: ['abierta', 'llena'] }
     }).populate('laboratorio', 'nombre ubicacion activo');
 
     if (!laboratorySession) {

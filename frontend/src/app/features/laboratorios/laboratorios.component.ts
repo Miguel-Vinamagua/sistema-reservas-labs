@@ -1,5 +1,7 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { interval } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { ErrorMessageService } from '../../core/errors/error-message.service';
 import { Laboratorio, LaboratoriosService } from './laboratorios.service';
@@ -33,6 +35,13 @@ import { Laboratorio, LaboratoriosService } from './laboratorios.service';
                 <span class="capacity">{{ laboratory.capacidad }} personas</span>
               </div>
               <p class="location"><span aria-hidden="true">⌖</span> {{ laboratory.ubicacion }}</p>
+              <span
+                class="availability"
+                [class.occupied]="isOccupied(laboratory)"
+                [attr.aria-label]="isOccupied(laboratory) ? 'Ocupado / En Sesión' : 'Disponible'"
+              >
+                {{ isOccupied(laboratory) ? 'Ocupado / En Sesión' : 'Disponible' }}
+              </span>
             </article>
           }
         </section>
@@ -61,6 +70,8 @@ import { Laboratorio, LaboratoriosService } from './laboratorios.service';
     .capacity { flex: 0 0 auto; padding: 5px 7px; border-radius: 3px; background: #e9f2ee; color: #315b4e; font: 700 12px/1.3 Arial, sans-serif; }
     .location { margin: 16px 0 0; color: #52635e; font: 14px/1.45 Arial, sans-serif; overflow-wrap: anywhere; }
     .location span { color: #467366; }
+    .availability { display: inline-flex; margin-top: 14px; padding: 5px 9px; border-radius: 999px; background: #e9f2ee; color: #286455; font: 700 12px/1.3 Arial, sans-serif; }
+    .availability.occupied { background: #fff1ee; color: #a12f28; }
     .status, .empty, .error { padding: 18px; border-radius: 4px; font: 15px/1.5 Arial, sans-serif; }
     .status, .empty { background: #fff; color: #52635e; }
     .error { border-left: 3px solid #a12f28; background: #fff1ee; color: #8b2924; }
@@ -70,6 +81,7 @@ export class LaboratoriosComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly service = inject(LaboratoriosService);
   private readonly errors = inject(ErrorMessageService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly administrator = this.auth.isAdministrator();
   readonly laboratories = signal<Laboratorio[]>([]);
@@ -77,9 +89,32 @@ export class LaboratoriosComponent implements OnInit {
   readonly errorMessage = signal<string | null>(null);
 
   ngOnInit(): void {
+    this.loadLaboratories();
+    interval(30_000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.loadLaboratories(false));
+  }
+
+  isOccupied(laboratory: Laboratorio): boolean {
+    if (!laboratory.ocupado) {
+      return false;
+    }
+
+    if (!laboratory.ocupadoHasta) {
+      return true;
+    }
+
+    return Date.now() <= Date.parse(laboratory.ocupadoHasta);
+  }
+
+  private loadLaboratories(initialLoad = true): void {
+    if (initialLoad) {
+      this.loading.set(true);
+    }
     this.service.getActiveLaboratories().subscribe({
       next: (laboratories) => {
         this.laboratories.set(laboratories);
+        this.errorMessage.set(null);
         this.loading.set(false);
       },
       error: (error: unknown) => {

@@ -57,7 +57,7 @@ const sesionLaboratorioSchema = new mongoose.Schema(
     estado: {
       type: String,
       required: true,
-      enum: ['abierta', 'llena', 'cancelada'],
+      enum: ['abierta', 'llena', 'cancelada', 'finalizada'],
       default: 'abierta'
     }
   },

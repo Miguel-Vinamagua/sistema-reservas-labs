@@ -130,9 +130,13 @@ export class LoginComponent {
     this.errorMessage = null;
     this.submitting = true;
     this.auth.login(this.form.getRawValue()).subscribe({
-      next: () => {
+      next: (response) => {
         this.submitting = false;
-        void this.router.navigateByUrl(this.returnUrl);
+        void this.router.navigateByUrl(
+          response.data.user.rol === 'docente'
+            ? '/docente'
+            : this.returnUrl ?? this.defaultRoute(response.data.user.rol)
+        );
       },
       error: (error: unknown) => {
         this.submitting = false;
@@ -141,7 +145,17 @@ export class LoginComponent {
     });
   }
 
-  private safeReturnUrl(value: string | null): string {
-    return value?.startsWith('/') && !value.startsWith('//') ? value : '/home';
+  private safeReturnUrl(value: string | null): string | null {
+    return value?.startsWith('/') && !value.startsWith('//') ? value : null;
+  }
+
+  private defaultRoute(role: 'estudiante' | 'docente' | 'administrador'): string {
+    if (role === 'docente') {
+      return '/docente';
+    }
+    if (role === 'administrador') {
+      return '/laboratorios/admin';
+    }
+    return '/laboratorios';
   }
 }

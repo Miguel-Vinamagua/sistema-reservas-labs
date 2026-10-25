@@ -127,7 +127,15 @@ describe('SesionLaboratorio model', () => {
     expect(invalidRange.validateSync().errors.fin).toBeDefined();
     expect(invalidQuotas.validateSync().errors.cupos).toBeDefined();
     expect(fractionalQuotas.validateSync().errors.cupos).toBeDefined();
-    expect(SesionLaboratorio.schema.path('estado').enumValues).toEqual(['abierta', 'llena', 'cancelada']);
+    expect(SesionLaboratorio.schema.path('estado').enumValues).toEqual([
+      'abierta',
+      'llena',
+      'cancelada',
+      'finalizada'
+    ]);
+    const finished = validSession();
+    finished.estado = 'finalizada';
+    expect(finished.validateSync()).toBeUndefined();
   });
 });
 

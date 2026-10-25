@@ -79,7 +79,7 @@ describe('NavbarComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Mis sesiones');
-    expect(fixture.nativeElement.querySelector('a[href="/docente/sesiones"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('a[href="/docente"]')).not.toBeNull();
     expect(fixture.nativeElement.textContent).not.toContain('Administrar');
   });
 
