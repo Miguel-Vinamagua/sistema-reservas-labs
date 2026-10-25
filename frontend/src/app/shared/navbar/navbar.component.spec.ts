@@ -9,12 +9,14 @@ describe('NavbarComponent', () => {
   let router: Router;
   let authenticated: boolean;
   let administrator: boolean;
+  let role: 'estudiante' | 'docente' | 'administrador';
   let userEmail: ReturnType<typeof signal<string | null>>;
   let logout: jasmine.Spy;
 
   beforeEach(async () => {
     authenticated = false;
     administrator = false;
+    role = 'estudiante';
     userEmail = signal<string | null>(null);
     logout = jasmine.createSpy('logout').and.callFake(() => {
       authenticated = false;
@@ -32,6 +34,7 @@ describe('NavbarComponent', () => {
             userEmail,
             isAuthenticated: () => authenticated,
             isAdministrator: () => administrator,
+            getRole: () => role,
             logout
           }
         }
@@ -55,19 +58,29 @@ describe('NavbarComponent', () => {
     expect(protectedLinks.length).toBe(0);
   });
 
-  it('shows authenticated navigation and administrator management when applicable', () => {
+  it('shows only administrator navigation for administrators', () => {
     authenticated = true;
     administrator = true;
+    role = 'administrador';
     userEmail.set('admin@universidad.edu');
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('Laboratorios');
-    expect(text).toContain('Reservas');
     expect(text).toContain('admin@universidad.edu');
     expect(text).toContain('Administrar');
+    expect(text).not.toContain('Nueva reserva');
     expect(text).toContain('Cerrar sesión');
     expect(text).not.toContain('Iniciar sesión');
+  });
+
+  it('shows the sessions dashboard to teachers', () => {
+    authenticated = true;
+    role = 'docente';
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Mis sesiones');
+    expect(fixture.nativeElement.querySelector('a[href="/docente/sesiones"]')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Administrar');
   });
 
   it('clears the session and navigates to login on logout', () => {
