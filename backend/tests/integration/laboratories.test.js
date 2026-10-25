@@ -5,12 +5,12 @@ const Laboratorio = require('../../src/models/laboratorio.model');
 const SesionLaboratorio = require('../../src/models/sesion-laboratorio.model');
 const { connectTestDatabase } = require('../setup');
 
-const jwtSecret = 'test-only-signing-secret';
+const jwtSecret = process.env.JWT_SECRET || 'secreto-jwt';
 
 function token(role = 'estudiante') {
   return jwt.sign(
     { rol: role },
-    jwtSecret,
+    process.env.JWT_SECRET || jwtSecret,
     { subject: '66a000000000000000000001', expiresIn: '1h' }
   );
 }
@@ -82,7 +82,7 @@ describe('GET /api/laboratorios', () => {
 
     const response = await request(app)
       .get('/api/laboratorios')
-      .set('Authorization', `****** 'estudiante')}`)
+      .set('Authorization', `Bearer ${token()}`)
       .expect(200);
 
     expect(response.body.data).toEqual(expect.arrayContaining([

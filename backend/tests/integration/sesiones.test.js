@@ -7,13 +7,17 @@ const Materia = require('../../src/models/materia.model');
 const SesionLaboratorio = require('../../src/models/sesion-laboratorio.model');
 const { connectTestDatabase } = require('../setup');
 
-const jwtSecret = 'test-only-signing-secret';
+const jwtSecret = process.env.JWT_SECRET || 'secreto-jwt';
 const teacherId = '66a000000000000000000002';
 const studentId = '66a000000000000000000001';
 const adminId = '66a000000000000000000003';
 
 function token(userId, role) {
-  return jwt.sign({ rol: role }, jwtSecret, { subject: userId, expiresIn: '1h' });
+  return jwt.sign(
+    { rol: role },
+    process.env.JWT_SECRET || jwtSecret,
+    { subject: userId, expiresIn: '1h' }
+  );
 }
 
 async function createLaboratory(overrides = {}) {
@@ -201,7 +205,7 @@ describe('/api/sesiones-laboratorio', () => {
 
       const response = await request(app)
         .get('/api/sesiones-laboratorio')
-        .set('Authorization', `****** 'estudiante')}`)
+        .set('Authorization', `Bearer ${token(studentId, 'estudiante')}`)
         .expect(200);
 
       expect(response.body.data).toEqual([]);
@@ -284,7 +288,7 @@ describe('/api/sesiones-laboratorio', () => {
 
       const response = await request(app)
         .get('/api/sesiones-laboratorio/mias')
-        .set('Authorization', `****** 'docente')}`)
+        .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
         .expect(200);
 
       expect(response.body.data).toHaveLength(2);

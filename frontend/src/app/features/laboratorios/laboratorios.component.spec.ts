@@ -46,6 +46,10 @@ describe('LaboratoriosComponent', () => {
     }).compileComponents();
   });
 
+  afterEach(() => {
+    fixture?.destroy();
+  });
+
   function createComponent(): void {
     fixture = TestBed.createComponent(LaboratoriosComponent);
     fixture.detectChanges();
@@ -90,10 +94,12 @@ describe('LaboratoriosComponent', () => {
   });
 
   it('refreshes laboratory status automatically', fakeAsync(() => {
-    laboratories.getActiveLaboratories.and.returnValues(
-      of([activeLaboratory]),
-      of([{ ...activeLaboratory, ocupado: true }])
-    );
+    let requestCount = 0;
+    laboratories.getActiveLaboratories.and.callFake(() => of(
+      requestCount++ === 0
+        ? [activeLaboratory]
+        : [{ ...activeLaboratory, ocupado: true }]
+    ));
     createComponent();
 
     tick(30_000);

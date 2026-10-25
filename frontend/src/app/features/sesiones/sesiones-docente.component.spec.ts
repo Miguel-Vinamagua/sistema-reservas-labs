@@ -67,7 +67,10 @@ describe('SesionesDocenteComponent', () => {
     }).compileComponents();
 
     fixture = TestBed.createComponent(SesionesDocenteComponent);
-    fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    fixture.destroy();
   });
 
   function futureDate(): string {
@@ -81,6 +84,7 @@ describe('SesionesDocenteComponent', () => {
   }
 
   it('loads laboratories and the teacher subject list into selectors', () => {
+    fixture.detectChanges();
     const page = fixture.nativeElement as HTMLElement;
     const laboratorySelect = page.querySelector('#laboratorio') as HTMLSelectElement;
     const subjectSelect = page.querySelector('#materia') as HTMLSelectElement;
@@ -91,6 +95,7 @@ describe('SesionesDocenteComponent', () => {
   });
 
   it('shows required-field feedback after submitting an empty form', () => {
+    fixture.detectChanges();
     fixture.componentInstance.submit();
     fixture.detectChanges();
 
@@ -104,6 +109,7 @@ describe('SesionesDocenteComponent', () => {
   });
 
   it('creates a session with the selected laboratory and teacher subject', () => {
+    fixture.detectChanges();
     const component = fixture.componentInstance;
     component.form.setValue({
       laboratorioId: laboratory.id,
@@ -126,6 +132,7 @@ describe('SesionesDocenteComponent', () => {
   });
 
   it('shows the server conflict message when the session overlaps', () => {
+    fixture.detectChanges();
     errors.getMessage.and.returnValue('El laboratorio ya tiene una sesión programada en ese horario.');
     sessions.createSession.and.returnValue(throwError(() => new HttpErrorResponse({
       status: 409,
@@ -148,26 +155,38 @@ describe('SesionesDocenteComponent', () => {
   });
 
   it('renders a finished session with a neutral status label', () => {
+    fixture.detectChanges();
     fixture.componentInstance.sessions.set([{ ...session, estado: 'finalizada' }]);
     fixture.detectChanges();
 
     const page = fixture.nativeElement as HTMLElement;
     expect(page.textContent).toContain('Finalizada');
-    expect(page.querySelectorAll('button').length).toBe(1);
+    expect(Array.from(page.querySelectorAll('button')).some(
+      (button) => button.textContent?.includes('Cancelar sesión')
+    )).toBeFalse();
   });
 
   it('treats an expired open session as finished using the client clock', () => {
+    fixture.detectChanges();
     const expired = { ...session, fin: new Date(Date.now() - 1000).toISOString() };
     fixture.componentInstance.sessions.set([expired]);
     fixture.detectChanges();
 
     const page = fixture.nativeElement as HTMLElement;
     expect(page.textContent).toContain('Finalizada');
-    expect(page.querySelectorAll('button').length).toBe(1);
+    expect(Array.from(page.querySelectorAll('button')).some(
+      (button) => button.textContent?.includes('Cancelar sesión')
+    )).toBeFalse();
   });
 
   it('refreshes sessions and displays their finished state automatically', fakeAsync(() => {
-    sessions.getMySessions.and.returnValue(of([{ ...session, estado: 'finalizada' }]));
+    let requestCount = 0;
+    sessions.getMySessions.and.callFake(() => of(
+      requestCount++ === 0
+        ? [session]
+        : [{ ...session, estado: 'finalizada' }]
+    ));
+    fixture.detectChanges();
 
     tick(30_000);
     fixture.detectChanges();
@@ -178,6 +197,7 @@ describe('SesionesDocenteComponent', () => {
   }));
 
   it('shows validation feedback for an end time that is not after the start', () => {
+    fixture.detectChanges();
     fixture.componentInstance.form.setValue({
       laboratorioId: laboratory.id,
       fecha: futureDate(),
@@ -196,6 +216,7 @@ describe('SesionesDocenteComponent', () => {
   });
 
   it('rejects dates before today with visible feedback', () => {
+    fixture.detectChanges();
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const pastDate = [
@@ -221,6 +242,7 @@ describe('SesionesDocenteComponent', () => {
   });
 
   it('shows the backend validation message for a 400 response', () => {
+    fixture.detectChanges();
     errors.getMessage.and.returnValue('La actividad es obligatoria.');
     sessions.createSession.and.returnValue(throwError(() => new HttpErrorResponse({
       status: 400,
@@ -243,6 +265,7 @@ describe('SesionesDocenteComponent', () => {
   });
 
   it('cancels a session only after confirmation and updates its state', () => {
+    fixture.detectChanges();
     spyOn(window, 'confirm').and.returnValue(true);
     fixture.componentInstance.cancelSession(session);
 
@@ -251,6 +274,7 @@ describe('SesionesDocenteComponent', () => {
   });
 
   it('does not cancel a session when confirmation is declined', () => {
+    fixture.detectChanges();
     spyOn(window, 'confirm').and.returnValue(false);
 
     fixture.componentInstance.cancelSession(session);
@@ -260,6 +284,7 @@ describe('SesionesDocenteComponent', () => {
   });
 
   it('shows a cancellation error without removing the session list', () => {
+    fixture.detectChanges();
     errors.getMessage.and.returnValue('La sesión ya no se puede cancelar.');
     sessions.cancelSession.and.returnValue(throwError(() => new Error('conflict')));
     spyOn(window, 'confirm').and.returnValue(true);
