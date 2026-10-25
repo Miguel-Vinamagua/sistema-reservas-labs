@@ -3,6 +3,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth.routes');
 const laboratoryRoutes = require('./routes/laboratorios.routes');
 const reservationRoutes = require('./routes/reservas.routes');
+const sessionRoutes = require('./routes/sesiones.routes');
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(cors({
 }));
 app.use('/api/auth', authRoutes);
 app.use('/api/laboratorios', laboratoryRoutes);
+app.use('/api/sesiones-laboratorio', sessionRoutes);
 app.use('/api/reservas', reservationRoutes);
 
 module.exports = app;
