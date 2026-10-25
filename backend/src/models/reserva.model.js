@@ -22,6 +22,13 @@ const reservaSchema = new mongoose.Schema(
   { collection: 'reservas', timestamps: true }
 );
 
-reservaSchema.index({ sesionLaboratorio: 1, usuario: 1 });
+reservaSchema.index(
+  { sesionLaboratorio: 1, usuario: 1 },
+  {
+    unique: true,
+    name: 'unique_active_reservation_per_session_user',
+    partialFilterExpression: { estado: 'activa' }
+  }
+);
 
 module.exports = mongoose.models.Reserva || mongoose.model('Reserva', reservaSchema);

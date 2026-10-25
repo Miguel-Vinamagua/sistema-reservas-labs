@@ -4,11 +4,18 @@ const {
   cancelSession,
   createSession,
   listAvailableSessions,
+  listScheduleSessions,
   listOwnSessions
 } = require('../controllers/sesiones.controller');
 
 const router = express.Router();
 
+router.get(
+  '/horarios',
+  authenticate,
+  authorizeRoles('estudiante'),
+  listScheduleSessions
+);
 router.get(
   '/mias',
   authenticate,

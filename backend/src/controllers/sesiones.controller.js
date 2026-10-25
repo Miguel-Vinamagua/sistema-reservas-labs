@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Laboratorio = require('../models/laboratorio.model');
 const Materia = require('../models/materia.model');
 const SesionLaboratorio = require('../models/sesion-laboratorio.model');
+require('../models/usuario.model');
 const { finalizeExpiredSessions } = require('../services/laboratorio.service');
 
 function sendError(res, error) {
@@ -58,6 +59,38 @@ function serializeSession(laboratorySession, laboratory = null) {
     cupos: laboratorySession.cupos,
     inscritosCount: laboratorySession.inscritosCount,
     estado: laboratorySession.estado
+  };
+}
+
+function serializeStudentSession(laboratorySession) {
+  const laboratory = laboratorySession.laboratorio;
+  const teacher = laboratorySession.docente;
+
+  return {
+    id: laboratorySession._id.toString(),
+    laboratorio: laboratory
+      ? {
+        id: laboratory._id.toString(),
+        nombre: laboratory.nombre,
+        ubicacion: laboratory.ubicacion
+      }
+      : null,
+    docente: teacher
+      ? {
+        id: teacher._id.toString(),
+        correo: teacher.correo
+      }
+      : null,
+    materia: laboratorySession.materia,
+    actividad: laboratorySession.actividad,
+    fecha: serializeDate(laboratorySession.fecha),
+    inicio: serializeDate(laboratorySession.inicio),
+    fin: serializeDate(laboratorySession.fin),
+    capacidadMax: laboratorySession.cupos,
+    inscritosCount: laboratorySession.inscritosCount,
+    estado: laboratorySession.estado === 'abierta'
+      ? 'disponible'
+      : laboratorySession.estado
   };
 }
 
@@ -187,16 +220,29 @@ async function createSession(req, res) {
   }
 }
 
-async function listAvailableSessions(_req, res) {
+async function listAvailableSessions(req, res) {
   try {
-    await finalizeExpiredSessions();
-    const sessions = await SesionLaboratorio.find({
+    const now = new Date();
+    await finalizeExpiredSessions(now);
+    let query = SesionLaboratorio.find({
       estado: 'abierta',
+      fin: { $gt: now },
       $expr: { $lt: ['$inscritosCount', '$cupos'] }
     })
       .populate('laboratorio', 'nombre ubicacion activo')
-      .sort({ inicio: 1, _id: 1 })
-      .lean();
+      .sort({ inicio: 1, _id: 1 });
+    if (req.auth.role === 'estudiante') {
+      query = query.populate('docente', 'correo');
+    }
+    const sessions = await query.lean();
+
+    if (req.auth.role === 'estudiante') {
+      const availableSessions = sessions
+        .filter((laboratorySession) => laboratorySession.laboratorio?.activo)
+        .map(serializeStudentSession);
+
+      return res.status(200).json({ data: availableSessions });
+    }
 
     const availableSessions = sessions
       .filter((laboratorySession) => laboratorySession.laboratorio?.activo)
@@ -205,6 +251,28 @@ async function listAvailableSessions(_req, res) {
       ));
 
     return res.status(200).json({ data: availableSessions });
+  } catch (error) {
+    return sendError(res, error);
+  }
+}
+
+async function listScheduleSessions(_req, res) {
+  try {
+    const now = new Date();
+    const sessions = await SesionLaboratorio.find({
+      estado: { $in: ['abierta', 'llena'] },
+      fin: { $gt: now }
+    })
+      .populate('laboratorio', 'nombre ubicacion activo')
+      .populate('docente', 'correo')
+      .sort({ inicio: 1, _id: 1 })
+      .lean();
+
+    return res.status(200).json({
+      data: sessions
+        .filter((laboratorySession) => laboratorySession.laboratorio?.activo)
+        .map(serializeStudentSession)
+    });
   } catch (error) {
     return sendError(res, error);
   }
@@ -271,5 +339,6 @@ module.exports = {
   cancelSession,
   createSession,
   listAvailableSessions,
+  listScheduleSessions,
   listOwnSessions
 };

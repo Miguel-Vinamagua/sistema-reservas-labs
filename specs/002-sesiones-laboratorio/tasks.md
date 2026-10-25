@@ -22,25 +22,25 @@
 
 ### Pruebas primero
 
-- [ ] T301 [P] [US2] Ampliar `backend/tests/integration/reservations.test.js` para reservar una sesión disponible con `sesionLaboratorioId` y para validar permisos de estudiante.
-- [ ] T302 [P] [US2] Añadir pruebas de integración para sesión llena, cancelada, terminada y laboratorio inactivo.
-- [ ] T303 [P] [US2] Añadir pruebas de duplicidad: segunda reserva activa para la misma pareja estudiante-sesión rechazada.
-- [ ] T304 [P] [US2] Añadir pruebas de solapamiento entre reservas activas del mismo estudiante; incluir sesiones de laboratorios distintos para fijar la regla elegida.
-- [ ] T305 [P] [US2] Añadir pruebas para cancelar una reserva propia antes del fin, liberar un cupo y reabrir una sesión llena.
-- [ ] T306 [P] [US3] Añadir pruebas para no cancelar después del fin y para historial con estados efectivos `activa`, `cancelada` y `finalizada`.
-- [ ] T307 [P] [US2] Reforzar `backend/tests/integration/reservation-concurrency.test.js` para que varias solicitudes simultáneas nunca superen `capacidadMax`.
-- [ ] T308 [P] [US2] Actualizar pruebas unitarias de `Reserva` para referencias a sesión/usuario y unicidad de reservas activas sin perder los casos existentes.
-- [ ] T309 [P] [US2] Actualizar `backend/tests/unit/seed-labs.test.js` para comprobar seed de sesiones y reservas bajo el nuevo esquema, conservando idempotencia y casos de conflicto.
+- [X] T301 [P] [US2] Ampliar `backend/tests/integration/reservations.test.js` para reservar una sesión disponible con `sesionLaboratorioId` y para validar permisos de estudiante.
+- [X] T302 [P] [US2] Añadir pruebas de integración para sesión llena, cancelada, terminada y laboratorio inactivo.
+- [X] T303 [P] [US2] Añadir pruebas de duplicidad: segunda reserva activa para la misma pareja estudiante-sesión rechazada.
+- [X] T304 [P] [US2] Añadir pruebas de solapamiento entre reservas activas del mismo estudiante; incluir sesiones de laboratorios distintos para fijar la regla elegida.
+- [X] T305 [P] [US2] Añadir pruebas para cancelar una reserva propia antes del fin, liberar un cupo y reabrir una sesión llena.
+- [X] T306 [P] [US3] Añadir pruebas para no cancelar después del fin y para historial con estados efectivos `activa`, `cancelada` y `finalizada`.
+- [X] T307 [P] [US2] Reforzar `backend/tests/integration/reservation-concurrency.test.js` para que varias solicitudes simultáneas nunca superen `capacidadMax`.
+- [X] T308 [P] [US2] Actualizar pruebas unitarias de `Reserva` para referencias a sesión/usuario y unicidad de reservas activas sin perder los casos existentes.
+- [X] T309 [P] [US2] Actualizar `backend/tests/unit/seed-labs.test.js` para comprobar seed de sesiones y reservas bajo el nuevo esquema, conservando idempotencia y casos de conflicto.
 
 ### Implementación después de pruebas
 
-- [ ] T310 [US2] Alinear `SesionLaboratorio` y las serializaciones al vocabulario contractual `capacidadMax`, `inscritosCount` y `estado: disponible/llena/cancelada/finalizada`, con pruebas de migración/compatibilidad explícitas.
-- [ ] T311 [US2] Implementar rechazo atómico de duplicidad y solapamiento para reservas activas del estudiante.
-- [ ] T312 [US2] Validar en el momento de reservar que la sesión no esté cancelada, llena ni terminada y que el laboratorio siga activo.
-- [ ] T313 [US2] Garantizar atómicamente que creación de reserva, incremento de `inscritosCount` y transición a `llena` no excedan `capacidadMax`.
-- [ ] T314 [US3] Implementar cancelación propia antes del fin, liberación única del cupo y transición `llena` a `disponible`.
-- [ ] T315 [US3] Serializar el historial del usuario autenticado con el estado efectivo `finalizada` al terminar la sesión, sin borrar ni modificar el registro histórico de la reserva.
-- [ ] T316 [US2] Migrar el seed `backend/scripts/seed-labs.js` para crear datos que referencien sesiones sin borrar reservas o pruebas; conservar idempotencia.
+- [X] T310 [US2] Alinear las serializaciones estudiantiles al vocabulario contractual `capacidadMax`, `inscritosCount` y `estado: disponible/llena/cancelada/finalizada`, conservando los campos internos usados por docente e incluyendo pruebas de compatibilidad.
+- [X] T311 [US2] Implementar rechazo atómico de duplicidad y solapamiento para reservas activas del estudiante.
+- [X] T312 [US2] Validar en el momento de reservar que la sesión no esté cancelada, llena ni terminada y que el laboratorio siga activo.
+- [X] T313 [US2] Garantizar atómicamente que creación de reserva, incremento de `inscritosCount` y transición a `llena` no excedan `capacidadMax`.
+- [X] T314 [US3] Implementar cancelación propia antes del fin, liberación única del cupo y transición `llena` a `disponible`.
+- [X] T315 [US3] Serializar el historial del usuario autenticado con el estado efectivo `finalizada` al terminar la sesión, sin borrar ni modificar el registro histórico de la reserva.
+- [X] T316 [US2] Migrar el seed `backend/scripts/seed-labs.js` para crear datos que referencien sesiones sin borrar reservas o pruebas; conservar idempotencia.
 
 ## Fase D: Estudiante frontend — Laboratorios, reservas y horarios (TDD)
 
@@ -66,12 +66,12 @@
 
 ### Pruebas primero
 
-- [ ] T501 [P] [US4] Añadir pruebas de integración para el listado de horarios: incluye sesiones futuras/en curso y llenas, excluye canceladas y `fin <= ahora`, ordena por fecha/hora y verifica datos de laboratorio/docente/cupos.
+- [X] T501 [P] [US4] Añadir pruebas de integración para el listado de horarios: incluye sesiones futuras/en curso y llenas, excluye canceladas y `fin <= ahora`, ordena por fecha/hora y verifica datos de laboratorio/docente/cupos.
 - [ ] T502 [P] [US4] Añadir pruebas de formato/estado efectivo de fechas y horarios en `America/Guayaquil`.
 
 ### Implementación después de pruebas
 
-- [ ] T503 [US4] Implementar el endpoint de horarios en `sesiones.routes.js` y `sesiones.controller.js`, calculado en cada consulta sin cron.
+- [X] T503 [US4] Implementar el endpoint de horarios en `sesiones.routes.js` y `sesiones.controller.js`, calculado en cada consulta sin cron.
 - [ ] T504 [US4] Actualizar `api-contract.md`, `data-model.md` y `plan.md` cuando se resuelvan las preguntas abiertas de comportamiento o migración.
 
 ## Migración y compatibilidad
