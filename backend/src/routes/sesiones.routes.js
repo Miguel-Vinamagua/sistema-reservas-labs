@@ -2,11 +2,18 @@ const express = require('express');
 const { authenticate, authorizeRoles } = require('../middleware/authorization');
 const {
   createSession,
-  listAvailableSessions
+  listAvailableSessions,
+  listOwnSessions
 } = require('../controllers/sesiones.controller');
 
 const router = express.Router();
 
+router.get(
+  '/mias',
+  authenticate,
+  authorizeRoles('docente'),
+  listOwnSessions
+);
 router.get(
   '/',
   authenticate,
