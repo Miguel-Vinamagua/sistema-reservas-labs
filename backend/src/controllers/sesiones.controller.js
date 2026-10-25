@@ -128,7 +128,29 @@ async function listAvailableSessions(_req, res) {
   }
 }
 
+async function listOwnSessions(req, res) {
+  try {
+    if (!mongoose.isValidObjectId(req.auth.userId)) {
+      throw validationError('El usuario autenticado no es válido.');
+    }
+
+    const sessions = await SesionLaboratorio.find({ docente: req.auth.userId })
+      .populate('laboratorio', 'nombre ubicacion activo')
+      .sort({ inicio: 1, _id: 1 })
+      .lean();
+
+    return res.status(200).json({
+      data: sessions.map((laboratorySession) => (
+        serializeSession(laboratorySession, laboratorySession.laboratorio)
+      ))
+    });
+  } catch (error) {
+    return sendError(res, error);
+  }
+}
+
 module.exports = {
   createSession,
-  listAvailableSessions
+  listAvailableSessions,
+  listOwnSessions
 };

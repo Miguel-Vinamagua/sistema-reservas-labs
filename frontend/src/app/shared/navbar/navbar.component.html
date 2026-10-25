@@ -23,6 +23,19 @@
             routerLinkActive="bg-emerald-50/80 font-semibold text-emerald-900"
             ariaCurrentWhenActive="page"
           >Administrar</a>
+        } @else if (teacher) {
+          <a
+            class="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-emerald-900"
+            routerLink="/docente/sesiones"
+            routerLinkActive="bg-emerald-50/80 font-semibold text-emerald-900"
+            ariaCurrentWhenActive="page"
+          >Mis sesiones</a>
+          <a
+            class="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-emerald-900"
+            routerLink="/laboratorios"
+            routerLinkActive="bg-emerald-50/80 font-semibold text-emerald-900"
+            ariaCurrentWhenActive="page"
+          >Laboratorios</a>
         } @else {
           <a
             class="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-emerald-900"
@@ -103,6 +116,9 @@
       @if (authenticated) {
         @if (administrator) {
           <a class="rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-emerald-900" routerLink="/laboratorios/admin" (click)="menuOpen.set(false)">Administrar</a>
+        } @else if (teacher) {
+          <a class="rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-emerald-900" routerLink="/docente/sesiones" (click)="menuOpen.set(false)">Mis sesiones</a>
+          <a class="rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-emerald-900" routerLink="/laboratorios" (click)="menuOpen.set(false)">Laboratorios</a>
         } @else {
           <a class="rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-emerald-900" routerLink="/laboratorios" (click)="menuOpen.set(false)">Laboratorios</a>
           <a class="rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-emerald-900" routerLink="/mis-reservas" (click)="menuOpen.set(false)">Reservas</a>

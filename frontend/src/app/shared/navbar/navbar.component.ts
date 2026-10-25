@@ -23,6 +23,10 @@ export class NavbarComponent {
     return this.auth.isAuthenticated() && this.auth.isAdministrator();
   }
 
+  get teacher(): boolean {
+    return this.auth.isAuthenticated() && this.auth.getRole() === 'docente';
+  }
+
   toggleMenu(): void {
     this.menuOpen.update((open) => !open);
   }

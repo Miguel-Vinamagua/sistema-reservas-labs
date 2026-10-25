@@ -45,6 +45,7 @@ async function createSession(laboratory, overrides = {}) {
     inicio: payload.inicio,
     fin: payload.fin,
     capacidadMax: laboratory.capacidad,
+    inscritosCount: payload.inscritosCount ?? 0,
     estado: payload.estado ?? 'disponible'
   });
 }
@@ -159,6 +160,43 @@ describe('/api/sesiones-laboratorio', () => {
       await request(app)
         .get('/api/sesiones-laboratorio')
         .set('Authorization', `Bearer ${token(adminId, 'administrador')}`)
+        .expect(403);
+    });
+  });
+
+  describe('GET /mias', () => {
+    it('returns all sessions created by the authenticated teacher only', async () => {
+      const laboratory = await createLaboratory();
+      const ownSession = await createSession(laboratory, {
+        estado: 'llena',
+        inscritosCount: 16
+      });
+      const otherSession = await createSession(laboratory);
+      await SesionLaboratorio.updateOne(
+        { _id: otherSession._id },
+        { docente: '66a000000000000000000004' }
+      );
+
+      const response = await request(app)
+        .get('/api/sesiones-laboratorio/mias')
+        .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
+        .expect(200);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0]).toMatchObject({
+        id: ownSession.id,
+        estado: 'llena',
+        laboratorio: {
+          id: laboratory.id,
+          nombre: laboratory.nombre
+        }
+      });
+    });
+
+    it('does not allow students to access the teacher session list', async () => {
+      await request(app)
+        .get('/api/sesiones-laboratorio/mias')
+        .set('Authorization', `Bearer ${token(studentId, 'estudiante')}`)
         .expect(403);
     });
   });
