@@ -10,10 +10,12 @@
 
 ## Fase A: Docente backend — creación de sesiones con materia, actividad y cupos
 
-- [ ] T101 [P] [US1] Escribir pruebas de integración para crear una sesión de laboratorio como docente autenticado en `backend/tests/integration/sesiones.test.js`.
-- [ ] T102 [US1] Implementar la creación de sesión con materia, actividad, fecha, inicio y fin, y con cupos por defecto igual a la capacidad del laboratorio.
-- [ ] T103 [US1] Añadir validación de cupos (enteros positivos no superiores a la capacidad) y exigir actividad obligatoria.
-- [ ] T104 [US1] Añadir verificación de solapamiento de sesiones activas del mismo laboratorio.
+- [X] T100 [P] [US1] Escribir pruebas unitarias para los modelos `Materia`/`SesionLaboratorio` y el seed idempotente del docente y sus materias.
+- [X] T101 [P] [US1] Escribir pruebas de integración para crear una sesión de laboratorio como docente autenticado en `backend/tests/integration/sesiones.test.js`, incluyendo autenticación y permisos.
+- [X] T105 [US1] Implementar los modelos Mongoose según `data-model.md` y el seed idempotente de `docente@utmachala.edu.ec` y dos materias.
+- [X] T102 [US1] Implementar la creación de sesión con materia, actividad, fecha, inicio y fin, y con cupos por defecto igual a la capacidad del laboratorio.
+- [X] T103 [US1] Añadir validación de cupos (enteros positivos no superiores a la capacidad) y exigir actividad obligatoria.
+- [X] T104 [US1] Añadir verificación transaccional de solapamiento de sesiones activas del mismo laboratorio.
 
 ## Fase B: Docente frontend — panel de sesiones
 
@@ -35,8 +37,8 @@
 - [ ] T501 Sesión llena: no admite más inscripciones.
 - [ ] T502 Sesión cancelada: no admite inscripciones y libera cupos.
 - [ ] T503 Doble inscripción: el estudiante no puede inscribirse dos veces en la misma sesión.
-- [ ] T504 Materia de otro docente: el docente solo puede usar materias asociadas a él.
-- [ ] T505 Solapamiento: dos sesiones activas del mismo laboratorio con intervalos que se cruzan.
+- [X] T504 Materia de otro docente: el docente solo puede usar materias asociadas a él.
+- [X] T505 Solapamiento: dos sesiones activas del mismo laboratorio con intervalos que se cruzan.
 - [ ] T506 Concurrencia sobre cupos: como máximo una inscripción efectiva en solicitudes simultáneas.
 
 ## Preguntas abiertas

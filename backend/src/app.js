@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth.routes');
 const laboratoryRoutes = require('./routes/laboratorios.routes');
+const materiasRoutes = require('./routes/materias.routes');
 const reservationRoutes = require('./routes/reservas.routes');
 const sessionRoutes = require('./routes/sesiones.routes');
 
@@ -15,6 +16,7 @@ app.use(cors({
 }));
 app.use('/api/auth', authRoutes);
 app.use('/api/laboratorios', laboratoryRoutes);
+app.use('/api/materias', materiasRoutes);
 app.use('/api/sesiones-laboratorio', sessionRoutes);
 app.use('/api/reservas', reservationRoutes);
 
