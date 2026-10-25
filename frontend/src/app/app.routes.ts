@@ -16,7 +16,7 @@ export const routes: Routes = [
 	{ path: 'laboratorios/admin', component: LaboratoriosAdminComponent, canActivate: [authGuard, adminGuard] },
 	{ path: 'reservas/nueva', component: ReservaFormComponent, canActivate: [authGuard] },
 	{ path: 'mis-reservas', component: MisReservasComponent, canActivate: [authGuard] },
-	{ path: 'docente/sesiones', component: SesionesDocenteComponent, canActivate: [teacherGuard] },
+	{ path: 'docente', component: SesionesDocenteComponent, canActivate: [teacherGuard] },
 	{ path: 'home', component: HomeComponent, canActivate: [authGuard] },
 	{ path: '', pathMatch: 'full', redirectTo: 'laboratorios' },
 	{ path: '**', redirectTo: 'laboratorios' }

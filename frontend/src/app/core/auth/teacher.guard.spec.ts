@@ -19,7 +19,7 @@ describe('teacherGuard', () => {
     });
 
     const result = TestBed.runInInjectionContext(() => (
-      teacherGuard({} as never, { url: '/docente/sesiones' } as never)
+      teacherGuard({} as never, { url: '/docente' } as never)
     ));
 
     expect(result).toBeTrue();
@@ -40,9 +40,31 @@ describe('teacherGuard', () => {
     });
 
     const result = TestBed.runInInjectionContext(() => (
-      teacherGuard({} as never, { url: '/docente/sesiones' } as never)
+      teacherGuard({} as never, { url: '/docente' } as never)
     ));
 
     expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/laboratorios');
+  });
+
+  it('sends unauthenticated users to login with the requested route', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        {
+          provide: AuthService,
+          useValue: {
+            isAuthenticated: () => false,
+            getRole: () => null
+          }
+        }
+      ]
+    });
+
+    const result = TestBed.runInInjectionContext(() => (
+      teacherGuard({} as never, { url: '/docente' } as never)
+    ));
+
+    expect(TestBed.inject(Router).serializeUrl(result as UrlTree))
+      .toBe('/login?returnUrl=%2Fdocente');
   });
 });

@@ -18,6 +18,14 @@ describe('SesionesService', () => {
 
   afterEach(() => http.verify());
 
+  it('requests the authenticated teacher subjects', () => {
+    service.getMySubjects().subscribe((subjects) => {
+      expect(subjects).toEqual([]);
+    });
+
+    http.expectOne(`${environment.apiBaseUrl}/materias`).flush({ data: [] });
+  });
+
   it('requests the authenticated teacher sessions', () => {
     service.getMySessions().subscribe((sessions) => {
       expect(sessions).toEqual([]);
@@ -43,5 +51,17 @@ describe('SesionesService', () => {
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual(payload);
     request.flush({ data: { id: 'session-1' } });
+  });
+
+  it('cancels a session through the teacher endpoint', () => {
+    service.cancelSession('session-1').subscribe((session) => {
+      expect(session.estado).toBe('cancelada');
+    });
+
+    const request = http.expectOne(
+      `${environment.apiBaseUrl}/sesiones-laboratorio/session-1/cancelar`
+    );
+    expect(request.request.method).toBe('PATCH');
+    request.flush({ data: { id: 'session-1', estado: 'cancelada' } });
   });
 });

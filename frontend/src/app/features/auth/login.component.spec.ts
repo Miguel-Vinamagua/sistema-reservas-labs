@@ -39,6 +39,18 @@ describe('LoginComponent', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/reservas');
   });
 
+  it('redirects teachers to their workspace when no return URL was requested', () => {
+    auth.login.and.returnValue(of({
+      data: { token: 'jwt', user: { id: '1', correo: 'docente@utmachala.edu.ec', rol: 'docente' } }
+    }));
+    fixture.componentInstance.form.setValue({ correo: 'docente@utmachala.edu.ec', password: 'secret' });
+    fixture.componentInstance.returnUrl = '/laboratorios';
+
+    fixture.componentInstance.submit();
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/docente');
+  });
+
   it('shows a safe API error when login fails', () => {
     auth.login.and.returnValue(throwError(() => new Error('failure')));
     errors.getMessage.and.returnValue('No se pudo completar la solicitud.');

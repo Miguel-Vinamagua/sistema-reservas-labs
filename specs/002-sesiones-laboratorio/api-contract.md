@@ -4,6 +4,10 @@
 
 ## Sesiones de laboratorio
 
+### `GET /api/laboratorios`
+
+Los laboratorios del catálogo incluyen `ocupado: boolean` y `ocupadoHasta` (fecha ISO de fin de la sesión activa o `null`), calculados con las sesiones cuyo horario contiene la hora actual (`inicio <= ahora <= fin`). Las sesiones canceladas o finalizadas no ocupan el laboratorio. Las sesiones abiertas o llenas cuyo fin ya pasó se marcan como `finalizada` al consultar el catálogo.
+
 ### `POST /api/sesiones-laboratorio`
 
 Solo docente. Crea una sesión de laboratorio.
@@ -82,3 +86,4 @@ Todos los errores usan la respuesta consistente:
 - `abierta`: la sesión admite inscripciones mientras queden cupos.
 - `llena`: no admite más inscripciones.
 - `cancelada`: no admite inscripciones y libera cupos.
+- `finalizada`: la hora de fin ya pasó; no admite inscripciones.

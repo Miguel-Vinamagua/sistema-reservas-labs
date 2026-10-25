@@ -8,6 +8,8 @@ export interface Laboratorio {
   capacidad: number;
   ubicacion: string;
   activo?: boolean;
+  ocupado?: boolean;
+  ocupadoHasta?: string | null;
 }
 
 interface LaboratoryListResponse {

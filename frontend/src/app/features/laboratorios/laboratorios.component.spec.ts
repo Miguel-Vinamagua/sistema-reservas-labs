@@ -1,4 +1,10 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import {
+  ComponentFixture,
+  discardPeriodicTasks,
+  fakeAsync,
+  TestBed,
+  tick
+} from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
@@ -16,7 +22,8 @@ describe('LaboratoriosComponent', () => {
     id: 'lab-1',
     nombre: 'Laboratorio de Física',
     capacidad: 24,
-    ubicacion: 'Bloque A, piso 2'
+    ubicacion: 'Bloque A, piso 2',
+    ocupado: false
   };
 
   beforeEach(async () => {
@@ -52,8 +59,50 @@ describe('LaboratoriosComponent', () => {
     expect(page.textContent).toContain('Laboratorio de Física');
     expect(page.textContent).toContain('24');
     expect(page.textContent).toContain('Bloque A, piso 2');
+    expect(page.textContent).toContain('Disponible');
     expect(page.querySelector('[data-testid="laboratory-item"]')).not.toBeNull();
   });
+
+  it('shows an occupied badge for a laboratory with a session in progress', () => {
+    laboratories.getActiveLaboratories.and.returnValue(of([
+      {
+        ...activeLaboratory,
+        ocupado: true,
+        ocupadoHasta: new Date(Date.now() + 60_000).toISOString()
+      }
+    ]));
+    createComponent();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Ocupado / En Sesión');
+  });
+
+  it('treats an expired occupancy end as available', () => {
+    laboratories.getActiveLaboratories.and.returnValue(of([{
+      ...activeLaboratory,
+      ocupado: true,
+      ocupadoHasta: new Date(Date.now() - 1000).toISOString()
+    }]));
+    createComponent();
+
+    const page = fixture.nativeElement as HTMLElement;
+    expect(page.textContent).toContain('Disponible');
+    expect(page.textContent).not.toContain('Ocupado / En Sesión');
+  });
+
+  it('refreshes laboratory status automatically', fakeAsync(() => {
+    laboratories.getActiveLaboratories.and.returnValues(
+      of([activeLaboratory]),
+      of([{ ...activeLaboratory, ocupado: true }])
+    );
+    createComponent();
+
+    tick(30_000);
+    fixture.detectChanges();
+
+    expect(laboratories.getActiveLaboratories).toHaveBeenCalledTimes(2);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Ocupado / En Sesión');
+    discardPeriodicTasks();
+  }));
 
   it('shows an empty state when no active laboratories are available', () => {
     laboratories.getActiveLaboratories.and.returnValue(of([]));

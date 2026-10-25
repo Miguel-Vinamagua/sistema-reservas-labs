@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Laboratorio = require('../models/laboratorio.model');
+const SesionLaboratorio = require('../models/sesion-laboratorio.model');
 
 function serviceError(statusCode, code, message) {
   const error = new Error(message);
@@ -8,7 +9,7 @@ function serviceError(statusCode, code, message) {
   return error;
 }
 
-function toPublicLaboratory(laboratory, includeStatus) {
+function toPublicLaboratory(laboratory, includeStatus, occupied, occupiedUntil = null) {
   const result = {
     id: laboratory._id.toString(),
     nombre: laboratory.nombre,
@@ -20,7 +21,22 @@ function toPublicLaboratory(laboratory, includeStatus) {
     result.activo = laboratory.activo;
   }
 
+  if (typeof occupied === 'boolean') {
+    result.ocupado = occupied;
+    result.ocupadoHasta = occupiedUntil;
+  }
+
   return result;
+}
+
+async function finalizeExpiredSessions(now = new Date()) {
+  await SesionLaboratorio.updateMany(
+    {
+      estado: { $in: ['abierta', 'llena'] },
+      fin: { $lt: now }
+    },
+    { $set: { estado: 'finalizada' } }
+  );
 }
 
 function toObjectId(id) {
@@ -103,13 +119,38 @@ async function deactivateLaboratory(id) {
 async function getLaboratories(role) {
   const isAdministrator = role === 'administrador';
   const filter = isAdministrator ? {} : { activo: true };
+  const now = new Date();
+  await finalizeExpiredSessions(now);
+
   const laboratories = await Laboratorio.find(filter)
     .sort({ nombre: 1, _id: 1 })
     .lean();
 
-  return laboratories.map((laboratory) => (
-    toPublicLaboratory(laboratory, isAdministrator)
-  ));
+  const activeSessions = await SesionLaboratorio.find({
+    estado: { $in: ['abierta', 'llena'] },
+    inicio: { $lte: now },
+    fin: { $gte: now }
+  })
+    .select('laboratorio fin')
+    .lean();
+  const occupancyEndByLaboratory = new Map();
+  for (const activeSession of activeSessions) {
+    const laboratoryId = activeSession.laboratorio.toString();
+    const currentEnd = occupancyEndByLaboratory.get(laboratoryId);
+    if (!currentEnd || activeSession.fin > currentEnd) {
+      occupancyEndByLaboratory.set(laboratoryId, activeSession.fin);
+    }
+  }
+
+  return laboratories.map((laboratory) => {
+    const occupancyEnd = occupancyEndByLaboratory.get(laboratory._id.toString());
+    return toPublicLaboratory(
+      laboratory,
+      isAdministrator,
+      Boolean(occupancyEnd),
+      occupancyEnd?.toISOString() ?? null
+    );
+  });
 }
 
 async function getLaboratoryById(id, session) {
@@ -130,6 +171,7 @@ async function getLaboratoryById(id, session) {
 module.exports = {
   createLaboratory,
   deactivateLaboratory,
+  finalizeExpiredSessions,
   getLaboratories,
   getLaboratoryById,
   serviceError,

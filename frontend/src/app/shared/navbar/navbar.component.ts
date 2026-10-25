@@ -27,6 +27,13 @@ export class NavbarComponent {
     return this.auth.isAuthenticated() && this.auth.getRole() === 'docente';
   }
 
+  get homeRoute(): string {
+    if (this.administrator) {
+      return '/laboratorios/admin';
+    }
+    return this.teacher ? '/docente' : this.authenticated ? '/laboratorios' : '/login';
+  }
+
   toggleMenu(): void {
     this.menuOpen.update((open) => !open);
   }
