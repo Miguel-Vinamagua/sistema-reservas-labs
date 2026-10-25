@@ -1,6 +1,7 @@
 const express = require('express');
 const { authenticate, authorizeRoles } = require('../middleware/authorization');
 const {
+  cancelSession,
   createSession,
   listAvailableSessions,
   listOwnSessions
@@ -25,6 +26,12 @@ router.post(
   authenticate,
   authorizeRoles('docente'),
   createSession
+);
+router.patch(
+  '/:id/cancelar',
+  authenticate,
+  authorizeRoles('docente'),
+  cancelSession
 );
 
 module.exports = router;

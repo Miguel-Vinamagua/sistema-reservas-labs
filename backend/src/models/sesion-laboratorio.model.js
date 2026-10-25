@@ -20,7 +20,12 @@ const sesionLaboratorioSchema = new mongoose.Schema(
     actividad: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
+      minlength: 1
+    },
+    fecha: {
+      type: Date,
+      required: true
     },
     inicio: {
       type: Date,
@@ -36,9 +41,14 @@ const sesionLaboratorioSchema = new mongoose.Schema(
         message: 'La fecha de fin debe ser posterior a la fecha de inicio.'
       }
     },
-    capacidadMax: {
+    cupos: {
       type: Number,
-      required: true
+      required: true,
+      min: 1,
+      validate: {
+        validator: Number.isInteger,
+        message: 'Los cupos deben ser un entero positivo.'
+      }
     },
     inscritosCount: {
       type: Number,
@@ -47,11 +57,11 @@ const sesionLaboratorioSchema = new mongoose.Schema(
     estado: {
       type: String,
       required: true,
-      enum: ['disponible', 'llena', 'finalizada'],
-      default: 'disponible'
+      enum: ['abierta', 'llena', 'cancelada'],
+      default: 'abierta'
     }
   },
-  { collection: 'sesioneslaboratorio', timestamps: true }
+  { collection: 'sesiones', timestamps: true }
 );
 
 module.exports =

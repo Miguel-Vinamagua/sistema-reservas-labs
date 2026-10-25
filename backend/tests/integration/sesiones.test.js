@@ -1,7 +1,9 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const request = require('supertest');
 const app = require('../../src/app');
 const Laboratorio = require('../../src/models/laboratorio.model');
+const Materia = require('../../src/models/materia.model');
 const SesionLaboratorio = require('../../src/models/sesion-laboratorio.model');
 const { connectTestDatabase } = require('../setup');
 
@@ -37,16 +39,25 @@ function sessionPayload(laboratorioId, overrides = {}) {
 
 async function createSession(laboratory, overrides = {}) {
   const payload = sessionPayload(laboratory.id, overrides);
+  const start = new Date(payload.inicio);
   return SesionLaboratorio.create({
     laboratorio: laboratory._id,
     docente: teacherId,
     materia: payload.materia,
     actividad: payload.actividad,
-    inicio: payload.inicio,
+    fecha: new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())),
+    inicio: start,
     fin: payload.fin,
-    capacidadMax: laboratory.capacidad,
-    inscritosCount: payload.inscritosCount ?? 0,
-    estado: payload.estado ?? 'disponible'
+    cupos: payload.cupos ?? laboratory.capacidad,
+    estado: payload.estado ?? 'abierta'
+  });
+}
+
+async function createTeacherSubject(name = 'Física', docente = teacherId) {
+  return Materia.create({
+    nombre: name,
+    codigo: name === 'Física' ? 'FIS-101' : 'MAT-101',
+    docente: new mongoose.Types.ObjectId(docente)
   });
 }
 
@@ -63,6 +74,7 @@ describe('/api/sesiones-laboratorio', () => {
   describe('POST /', () => {
     it('allows a teacher to create a session with laboratory capacity and available status', async () => {
       const laboratory = await createLaboratory();
+      await createTeacherSubject();
       const response = await request(app)
         .post('/api/sesiones-laboratorio')
         .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
@@ -79,11 +91,24 @@ describe('/api/sesiones-laboratorio', () => {
         docente: teacherId,
         materia: 'Física',
         actividad: 'Práctica',
-        capacidadMax: laboratory.capacidad,
-        inscritosCount: 0,
-        estado: 'disponible'
+        cupos: laboratory.capacidad,
+        fecha: expect.any(String),
+        estado: 'abierta'
       });
       expect(await SesionLaboratorio.countDocuments()).toBe(1);
+    });
+
+    it('allows a teacher to reduce quotas below laboratory capacity', async () => {
+      const laboratory = await createLaboratory();
+      await createTeacherSubject();
+
+      const response = await request(app)
+        .post('/api/sesiones-laboratorio')
+        .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
+        .send({ ...sessionPayload(laboratory.id), cupos: laboratory.capacidad - 2 })
+        .expect(201);
+
+      expect(response.body.data.cupos).toBe(laboratory.capacidad - 2);
     });
 
     it('rejects users other than teachers', async () => {
@@ -96,6 +121,15 @@ describe('/api/sesiones-laboratorio', () => {
         .expect(403);
 
       await expect(SesionLaboratorio.countDocuments()).resolves.toBe(0);
+    });
+
+    it('requires authentication', async () => {
+      const laboratory = await createLaboratory();
+
+      await request(app)
+        .post('/api/sesiones-laboratorio')
+        .send(sessionPayload(laboratory.id))
+        .expect(401);
     });
 
     it('rejects a session whose end is not after its start', async () => {
@@ -144,6 +178,7 @@ describe('/api/sesiones-laboratorio', () => {
       const inactiveLaboratory = await createLaboratory({ nombre: 'Laboratorio inactivo', activo: false });
       const available = await createSession(laboratory);
       await createSession(laboratory, { estado: 'llena' });
+      await createSession(laboratory, { estado: 'cancelada' });
       await createSession(inactiveLaboratory);
 
       const response = await request(app)
@@ -153,7 +188,7 @@ describe('/api/sesiones-laboratorio', () => {
 
       expect(response.body.data).toHaveLength(1);
       expect(response.body.data[0].id).toBe(available.id);
-      expect(response.body.data[0].estado).toBe('disponible');
+      expect(response.body.data[0].estado).toBe('abierta');
     });
 
     it('does not allow administrators to list student sessions', async () => {
@@ -162,6 +197,21 @@ describe('/api/sesiones-laboratorio', () => {
         .set('Authorization', `Bearer ${token(adminId, 'administrador')}`)
         .expect(403);
     });
+
+    it('does not allow administrators to access the teacher session list', async () => {
+      await request(app)
+        .get('/api/sesiones-laboratorio/mias')
+        .set('Authorization', `Bearer ${token(adminId, 'administrador')}`)
+        .expect(403);
+    });
+
+    it('requires authentication', async () => {
+      await request(app).get('/api/sesiones-laboratorio/mias').expect(401);
+    });
+
+    it('requires authentication', async () => {
+      await request(app).get('/api/sesiones-laboratorio').expect(401);
+    });
   });
 
   describe('GET /mias', () => {
@@ -169,7 +219,7 @@ describe('/api/sesiones-laboratorio', () => {
       const laboratory = await createLaboratory();
       const ownSession = await createSession(laboratory, {
         estado: 'llena',
-        inscritosCount: 16
+        cupos: 16
       });
       const otherSession = await createSession(laboratory);
       await SesionLaboratorio.updateOne(
@@ -198,6 +248,187 @@ describe('/api/sesiones-laboratorio', () => {
         .get('/api/sesiones-laboratorio/mias')
         .set('Authorization', `Bearer ${token(studentId, 'estudiante')}`)
         .expect(403);
+    });
+  });
+
+  describe('/api/materias', () => {
+    it('lists the subjects of the authenticated teacher', async () => {
+      const teacherObjectId = new mongoose.Types.ObjectId(teacherId);
+      await Materia.create({ nombre: 'Matemática', codigo: 'MAT-101', docente: teacherObjectId });
+      await Materia.create({ nombre: 'Física', codigo: 'FIS-101', docente: teacherObjectId });
+
+      const response = await request(app)
+        .get('/api/materias')
+        .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
+        .expect(200);
+
+      expect(response.body.data).toHaveLength(2);
+    });
+
+    it('does not allow students to list subjects', async () => {
+      await request(app)
+        .get('/api/materias')
+        .set('Authorization', `Bearer ${token(studentId, 'estudiante')}`)
+        .expect(403);
+    });
+
+    it('does not allow administrators to list subjects', async () => {
+      await request(app)
+        .get('/api/materias')
+        .set('Authorization', `Bearer ${token(adminId, 'administrador')}`)
+        .expect(403);
+    });
+
+    it('requires authentication to list subjects', async () => {
+      await request(app).get('/api/materias').expect(401);
+    });
+  });
+
+  describe('POST /api/sesiones-laboratorio - teacher session validations', () => {
+    it('does not allow an administrator to create a session', async () => {
+      const laboratory = await createLaboratory();
+
+      await request(app)
+        .post('/api/sesiones-laboratorio')
+        .set('Authorization', `Bearer ${token(adminId, 'administrador')}`)
+        .send(sessionPayload(laboratory.id))
+        .expect(403);
+    });
+
+    it.each([0, -1, 1.5, 21])('rejects invalid cupos: %s', async (cupos) => {
+      const laboratory = await createLaboratory();
+      await createTeacherSubject();
+
+      await request(app)
+        .post('/api/sesiones-laboratorio')
+        .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
+        .send({ ...sessionPayload(laboratory.id), cupos })
+        .expect(400);
+
+      await expect(SesionLaboratorio.countDocuments()).resolves.toBe(0);
+    });
+
+    it('rejects overlapping sessions for the same laboratory', async () => {
+      const laboratory = await createLaboratory();
+      await createTeacherSubject();
+      const first = await createSession(laboratory);
+      const secondPayload = sessionPayload(laboratory.id);
+      secondPayload.inicio = new Date(first.inicio.getTime() + 30 * 60 * 1000).toISOString();
+      secondPayload.fin = new Date(first.fin.getTime() + 30 * 60 * 1000).toISOString();
+
+      const response = await request(app)
+        .post('/api/sesiones-laboratorio')
+        .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
+        .send(secondPayload)
+        .expect(409);
+
+      expect(response.body.error.code).toBe('SESSION_TIME_CONFLICT');
+      await expect(SesionLaboratorio.countDocuments()).resolves.toBe(1);
+    });
+
+    it('rejects subjects that are not associated with the teacher', async () => {
+      const laboratory = await createLaboratory();
+      const otherTeacherId = new mongoose.Types.ObjectId('66a000000000000000000009');
+      await Materia.create({ nombre: 'Química', codigo: 'QUI-101', docente: otherTeacherId });
+
+      const response = await request(app)
+        .post('/api/sesiones-laboratorio')
+        .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
+        .send({ ...sessionPayload(laboratory.id), materia: 'Química' })
+        .expect(400);
+
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+      await expect(SesionLaboratorio.countDocuments()).resolves.toBe(0);
+    });
+
+    it('rejects sessions whose start date is in the past', async () => {
+      const laboratory = await createLaboratory();
+      const payload = sessionPayload(laboratory.id);
+      payload.inicio = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      payload.fin = new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString();
+
+      const response = await request(app)
+        .post('/api/sesiones-laboratorio')
+        .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
+        .send(payload)
+        .expect(400);
+
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+      await expect(SesionLaboratorio.countDocuments()).resolves.toBe(0);
+    });
+
+    it('requires non-empty activity and subject', async () => {
+      const laboratory = await createLaboratory();
+      await createTeacherSubject();
+      const authorization = `Bearer ${token(teacherId, 'docente')}`;
+
+      await request(app)
+        .post('/api/sesiones-laboratorio')
+        .set('Authorization', authorization)
+        .send({ ...sessionPayload(laboratory.id), actividad: '  ' })
+        .expect(400);
+      await request(app)
+        .post('/api/sesiones-laboratorio')
+        .set('Authorization', authorization)
+        .send({ ...sessionPayload(laboratory.id), materia: '  ' })
+        .expect(400);
+      await expect(SesionLaboratorio.countDocuments()).resolves.toBe(0);
+    });
+  });
+
+  describe('PATCH /api/sesiones-laboratorio/:id/cancelar', () => {
+    it('allows the owning teacher to cancel a session', async () => {
+      const laboratory = await createLaboratory();
+      const session = await createSession(laboratory);
+
+      const response = await request(app)
+        .patch(`/api/sesiones-laboratorio/${session.id}/cancelar`)
+        .set('Authorization', `Bearer ${token(teacherId, 'docente')}`)
+        .expect(200);
+
+      expect(response.body.data.estado).toBe('cancelada');
+    });
+
+    it('does not allow a student to cancel a session', async () => {
+      const laboratory = await createLaboratory();
+      const session = await createSession(laboratory);
+
+      const response = await request(app)
+        .patch(`/api/sesiones-laboratorio/${session.id}/cancelar`)
+        .set('Authorization', `Bearer ${token(studentId, 'estudiante')}`)
+        .expect(403);
+
+      expect(response.body.error.code).toBe('FORBIDDEN');
+    });
+
+    it('does not allow an administrator to cancel a session', async () => {
+      const laboratory = await createLaboratory();
+      const session = await createSession(laboratory);
+
+      const response = await request(app)
+        .patch(`/api/sesiones-laboratorio/${session.id}/cancelar`)
+        .set('Authorization', `Bearer ${token(adminId, 'administrador')}`)
+        .expect(403);
+
+      expect(response.body.error.code).toBe('FORBIDDEN');
+    });
+
+    it('requires authentication to cancel a session', async () => {
+      const response = await request(app)
+        .patch('/api/sesiones-laboratorio/66a000000000000000000099/cancelar')
+        .expect(401);
+
+      expect(response.body.error.code).toBe('UNAUTHORIZED');
+    });
+
+    it('does not allow a teacher to cancel another teacher session', async () => {
+      const laboratory = await createLaboratory();
+      const session = await createSession(laboratory);
+
+      await request(app)
+        .patch(`/api/sesiones-laboratorio/${session.id}/cancelar`)
+        .set('Authorization', `Bearer ${token('66a000000000000000000009', 'docente')}`)
+        .expect(404);
     });
   });
 });

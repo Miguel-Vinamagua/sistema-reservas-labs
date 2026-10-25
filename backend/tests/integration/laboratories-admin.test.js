@@ -124,9 +124,10 @@ describe('administrator laboratory management', () => {
       docente: teacherId,
       materia: 'Química',
       actividad: 'Práctica',
+      fecha: new Date('2030-05-10T00:00:00.000Z'),
       inicio: new Date('2030-05-10T15:00:00.000Z'),
       fin: new Date('2030-05-10T17:00:00.000Z'),
-      capacidadMax: laboratory.capacidad,
+      cupos: laboratory.capacidad,
       inscritosCount: 1
     });
     const reservation = await Reserva.create({

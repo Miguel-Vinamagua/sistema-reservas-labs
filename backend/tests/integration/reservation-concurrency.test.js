@@ -39,9 +39,10 @@ describe('concurrent reservation requests', () => {
       docente: new mongoose.Types.ObjectId('66a000000000000000000003'),
       materia: 'Física',
       actividad: 'Práctica de capacidad',
+      fecha: new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())),
       inicio: start,
       fin: new Date(start.getTime() + 2 * 60 * 60 * 1000),
-      capacidadMax: 1
+      cupos: 1
     });
     const payload = { sesionLaboratorioId: laboratorySession.id };
 

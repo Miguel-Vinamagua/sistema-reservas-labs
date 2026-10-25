@@ -28,9 +28,10 @@ async function createSession(laboratory, overrides = {}) {
     docente: new mongoose.Types.ObjectId(teacherId),
     materia: 'Física',
     actividad: 'Práctica de laboratorio',
+    fecha: new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())),
     inicio: start,
     fin: new Date(start.getTime() + 2 * 60 * 60 * 1000),
-    capacidadMax: laboratory.capacidad,
+    cupos: laboratory.capacidad,
     ...overrides
   });
 }
@@ -38,7 +39,7 @@ async function createSession(laboratory, overrides = {}) {
 async function createReservation(laboratorySession, userId = studentId, estado = 'activa') {
   if (estado === 'activa') {
     laboratorySession.inscritosCount += 1;
-    if (laboratorySession.inscritosCount >= laboratorySession.capacidadMax) {
+    if (laboratorySession.inscritosCount >= laboratorySession.cupos) {
       laboratorySession.estado = 'llena';
     }
     await laboratorySession.save();
@@ -88,7 +89,7 @@ describe('POST /api/reservas', () => {
     await expect(Reserva.countDocuments()).resolves.toBe(1);
     await expect(SesionLaboratorio.findById(laboratorySession._id).lean()).resolves.toMatchObject({
       inscritosCount: 1,
-      estado: 'disponible'
+      estado: 'abierta'
     });
   });
 
@@ -145,7 +146,7 @@ describe('POST /api/reservas', () => {
     await expect(Reserva.countDocuments()).resolves.toBe(0);
   });
 
-  it.each(['llena', 'finalizada'])('rejects a session with state "%s"', async (estado) => {
+  it.each(['llena', 'cancelada'])('rejects a session with state "%s"', async (estado) => {
     const laboratorySession = await createSession(laboratory, { estado });
 
     await request(app)
@@ -159,7 +160,7 @@ describe('POST /api/reservas', () => {
 
   it('rejects a session at capacity even if its state has not been updated', async () => {
     const laboratorySession = await createSession(laboratory, {
-      capacidadMax: 1,
+      cupos: 1,
       inscritosCount: 1
     });
 
@@ -173,7 +174,7 @@ describe('POST /api/reservas', () => {
   });
 
   it('marks a session full at capacity and rejects further reservations', async () => {
-    const laboratorySession = await createSession(laboratory, { capacidadMax: 2 });
+    const laboratorySession = await createSession(laboratory, { cupos: 2 });
     const payload = { sesionLaboratorioId: laboratorySession.id };
 
     await request(app)
@@ -213,7 +214,7 @@ describe('POST /api/reservas', () => {
     await expect(Reserva.countDocuments()).resolves.toBe(0);
     await expect(SesionLaboratorio.findById(laboratorySession._id).lean()).resolves.toMatchObject({
       inscritosCount: 0,
-      estado: 'disponible'
+      estado: 'abierta'
     });
   });
 });
@@ -276,7 +277,7 @@ describe('GET /api/reservas and PATCH /api/reservas/:id/cancelar', () => {
   });
 
   it('cancels an owned reservation and frees a place in its session', async () => {
-    const laboratorySession = await createSession(laboratory, { capacidadMax: 1 });
+    const laboratorySession = await createSession(laboratory, { cupos: 1 });
     const reservation = await createReservation(laboratorySession);
 
     const cancellation = await request(app)
@@ -294,7 +295,7 @@ describe('GET /api/reservas and PATCH /api/reservas/:id/cancelar', () => {
     });
     await expect(SesionLaboratorio.findById(laboratorySession._id).lean()).resolves.toMatchObject({
       inscritosCount: 0,
-      estado: 'disponible'
+      estado: 'abierta'
     });
 
     await request(app)

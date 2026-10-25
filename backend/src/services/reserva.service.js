@@ -94,15 +94,21 @@ async function cancelOwnReservation(reservationId, usuarioId) {
 
       const laboratorySession = await SesionLaboratorio.findById(reservation.sesionLaboratorio)
         .session(session);
-      if (!laboratorySession || laboratorySession.inscritosCount < 1) {
+      if (!laboratorySession) {
         throw new Error('No se pudo actualizar el contador de inscritos de la sesión.');
       }
 
-      laboratorySession.inscritosCount -= 1;
-      if (laboratorySession.estado === 'llena') {
-        laboratorySession.estado = 'disponible';
+      if (laboratorySession.estado !== 'cancelada') {
+        if (laboratorySession.inscritosCount < 1) {
+          throw new Error('No se pudo actualizar el contador de inscritos de la sesión.');
+        }
+
+        laboratorySession.inscritosCount -= 1;
+        if (laboratorySession.estado === 'llena') {
+          laboratorySession.estado = 'abierta';
+        }
+        await laboratorySession.save({ session });
       }
-      await laboratorySession.save({ session });
       cancelledReservation = serializeReservation(reservation);
     });
   } finally {
@@ -128,10 +134,10 @@ async function createReservation({ sesionLaboratorioId, usuarioId }) {
       if (!laboratorySession) {
         throw serviceError(404, 'LAB_SESSION_NOT_FOUND', 'No se encontró la sesión solicitada.');
       }
-      if (laboratorySession.estado !== 'disponible') {
+      if (laboratorySession.estado !== 'abierta') {
         throw serviceError(409, 'LAB_SESSION_NOT_AVAILABLE', 'La sesión no está disponible para reservas.');
       }
-      if (laboratorySession.inscritosCount >= laboratorySession.capacidadMax) {
+      if (laboratorySession.inscritosCount >= laboratorySession.cupos) {
         throw serviceError(409, 'LAB_SESSION_FULL', 'La sesión alcanzó su capacidad máxima.');
       }
 
@@ -149,8 +155,8 @@ async function createReservation({ sesionLaboratorioId, usuarioId }) {
       const updatedSession = await SesionLaboratorio.findOneAndUpdate(
         {
           _id: laboratorySessionId,
-          estado: 'disponible',
-          $expr: { $lt: ['$inscritosCount', '$capacidadMax'] }
+          estado: 'abierta',
+          $expr: { $lt: ['$inscritosCount', '$cupos'] }
         },
         { $inc: { inscritosCount: 1 } },
         { new: true, runValidators: true, session }
@@ -159,7 +165,7 @@ async function createReservation({ sesionLaboratorioId, usuarioId }) {
       if (!updatedSession) {
         throw serviceError(409, 'LAB_SESSION_FULL', 'La sesión alcanzó su capacidad máxima.');
       }
-      if (updatedSession.inscritosCount >= updatedSession.capacidadMax) {
+      if (updatedSession.inscritosCount >= updatedSession.cupos) {
         updatedSession.estado = 'llena';
         await updatedSession.save({ session });
       }
