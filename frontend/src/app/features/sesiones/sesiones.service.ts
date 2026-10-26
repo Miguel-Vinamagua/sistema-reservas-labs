@@ -86,7 +86,7 @@ export class SesionesService {
   }
 
   getSchedule(): Observable<SesionEstudiante[]> {
-    return this.api.get<ApiResponse<SesionEstudiante[]>>('/sesiones-laboratorio/horarios').pipe(
+    return this.api.get<ApiResponse<SesionEstudiante[]>>('/sesiones-laboratorio').pipe(
       map(({ data }) => data)
     );
   }
