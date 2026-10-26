@@ -59,18 +59,18 @@ import { ReservasService } from '../reservas/reservas.service';
                   <div><dt>Fecha</dt><dd>{{ formatDate(session.inicio) }}</dd></div>
                   <div><dt>Horario</dt><dd>{{ formatTime(session.inicio) }}–{{ formatTime(session.fin) }}</dd></div>
                   <div>
-                    <dt>Cupos libres</dt>
+                  <dt>Cupos libres</dt>
                     <dd>{{ freePlaces(session) }}/{{ session.capacidadMax }}</dd>
                   </div>
                 </dl>
                 <button
-                  class="reserve-session"
-                  type="button"
-                  [disabled]="isSessionFull(session) || reservingSessionId() === session.id"
-                  (click)="reserve(session)"
-                >
-                  {{ reservingSessionId() === session.id ? 'Reservando…' : 'Reservar cupo' }}
-                </button>
+  class="reserve-session"
+  type="button"
+  [disabled]="isSessionFull(session) || isReserved(session.id) || reservingSessionId() === session.id"
+  (click)="reserve(session)"
+>
+  {{ isReserved(session.id) ? 'Reservado' : (reservingSessionId() === session.id ? 'Reservando…' : 'Reservar cupo') }}
+</button>
               </article>
             }
           </section>
@@ -157,6 +157,9 @@ export class LaboratoriosComponent implements OnInit {
   readonly successMessage = signal<string | null>(null);
   readonly reservationError = signal<string | null>(null);
   readonly reservingSessionId = signal<string | null>(null);
+  readonly reservedSessionIds = signal<string[]>(
+  JSON.parse(localStorage.getItem('user_reserved_sessions') || '[]')
+);
   private readonly sessionsService = inject(SesionesService);
   private readonly reservationsService = inject(ReservasService);
 
@@ -172,7 +175,7 @@ export class LaboratoriosComponent implements OnInit {
   }
 
   reserve(session: SesionEstudiante): void {
-    if (this.isSessionFull(session) || this.reservingSessionId() || !window.confirm(
+    if (this.isSessionFull(session) || this.isReserved(session.id) || this.reservingSessionId() || !window.confirm(
       `¿Confirmas reservar un cupo para ${session.materia} en ${session.laboratorio.nombre}?`
     )) {
       return;
@@ -185,18 +188,11 @@ export class LaboratoriosComponent implements OnInit {
       sesionLaboratorioId: session.id
     }).subscribe({
       next: () => {
-        this.studentSessions.update((current) => current.map((item) => {
-          if (item.id !== session.id) {
-            return item;
-          }
+        // Marcar esta sesión como reservada localmente
+        const updated = [...this.reservedSessionIds(), session.id];
+        this.reservedSessionIds.set(updated);
+        localStorage.setItem('user_reserved_sessions', JSON.stringify(updated));
 
-          const inscritosCount = item.inscritosCount + 1;
-          return {
-            ...item,
-            inscritosCount,
-            estado: inscritosCount >= item.capacidadMax ? 'llena' : 'disponible'
-          };
-        }));
         this.successMessage.set('Reserva realizada correctamente.');
         this.reservingSessionId.set(null);
       },
@@ -213,6 +209,10 @@ export class LaboratoriosComponent implements OnInit {
 
   freePlaces(session: SesionEstudiante): number {
     return Math.max(0, session.capacidadMax - session.inscritosCount);
+  }
+
+  isReserved(sessionId: string): boolean {
+  return this.reservedSessionIds().includes(sessionId);
   }
 
   formatDate(value: string): string {
@@ -292,7 +292,10 @@ export class LaboratoriosComponent implements OnInit {
         return 'La sesión se llenó. Actualiza la lista para ver su estado.';
       }
       if (code === 'RESERVATION_DUPLICATE') {
-        return 'Ya reservaste un cupo para esta sesión.';
+        const updated = [...this.reservedSessionIds(), sessionId];
+        this.reservedSessionIds.set(updated);
+        localStorage.setItem('user_reserved_sessions', JSON.stringify(updated));
+        return 'Ya tenías una reserva activa para esta sesión.';
       }
       if (code === 'RESERVATION_TIME_CONFLICT') {
         return 'El horario se solapa con otra reserva tuya.';

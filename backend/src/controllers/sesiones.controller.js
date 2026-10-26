@@ -224,16 +224,30 @@ async function listAvailableSessions(req, res) {
   try {
     const now = new Date();
     await finalizeExpiredSessions(now);
-    let query = SesionLaboratorio.find({
+
+    // 1. Si es un estudiante, buscamos las sesiones que YA tiene reservadas para excluirlas
+    let reservedSessionIds = [];
+    if (req.auth.role === 'estudiante') {
+      const Reserva = require('../models/reserva.model'); // Asegúrate de que el nombre del modelo coincida con tu proyecto
+      const studentReservations = await Reserva.find({
+        estudiante: req.auth.userId,
+        estado: 'activa'
+      }).select('sesionLaboratorio').lean();
+      
+      reservedSessionIds = studentReservations.map((r) => r.sesionLaboratorio);
+    }
+
+    // 2. Buscamos las sesiones abiertas, con cupos, que NO estén en las reservas del estudiante
+    const query = SesionLaboratorio.find({
+      _id: { $nin: reservedSessionIds },
       estado: 'abierta',
       fin: { $gt: now },
       $expr: { $lt: ['$inscritosCount', '$cupos'] }
     })
       .populate('laboratorio', 'nombre ubicacion activo')
+      .populate('docente', 'correo')
       .sort({ inicio: 1, _id: 1 });
-    if (req.auth.role === 'estudiante') {
-      query = query.populate('docente', 'correo');
-    }
+
     const sessions = await query.lean();
 
     if (req.auth.role === 'estudiante') {
