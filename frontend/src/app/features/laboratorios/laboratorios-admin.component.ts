@@ -14,7 +14,7 @@ const positiveInteger: ValidatorFn = (control) => (
 
 @Component({
   selector: 'app-laboratorios-admin',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule],
   template:`
     <main class="admin-page">
       <header class="page-header">
