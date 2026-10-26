@@ -53,7 +53,7 @@ describe('NavbarComponent', () => {
     expect(text).toContain('Iniciar sesión');
     expect(text).not.toContain('Cerrar sesión');
     const protectedLinks = fixture.nativeElement.querySelectorAll(
-      'a[href="/laboratorios"], a[href="/mis-reservas"], a[href="/reservas/nueva"], a[href="/laboratorios/admin"]'
+      'a[href="/laboratorios"], a[href="/mis-reservas"], a[href="/horarios"], a[href="/laboratorios/admin"]'
     );
     expect(protectedLinks.length).toBe(0);
   });
@@ -81,6 +81,28 @@ describe('NavbarComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Mis sesiones');
     expect(fixture.nativeElement.querySelector('a[href="/docente"]')).not.toBeNull();
     expect(fixture.nativeElement.textContent).not.toContain('Administrar');
+  });
+
+  it('shows the three student tabs on desktop and mobile', () => {
+    authenticated = true;
+    role = 'estudiante';
+    fixture.detectChanges();
+
+    const page = fixture.nativeElement as HTMLElement;
+    expect(page.textContent).toContain('Laboratorios');
+    expect(page.textContent).toContain('Mis reservas');
+    expect(page.textContent).toContain('Horarios');
+    expect(page.querySelectorAll('nav[aria-label="Navegación principal"] a[href="/laboratorios"]').length).toBe(1);
+    expect(page.querySelectorAll('nav[aria-label="Navegación principal"] a[href="/mis-reservas"]').length).toBe(1);
+    expect(page.querySelectorAll('nav[aria-label="Navegación principal"] a[href="/horarios"]').length).toBe(1);
+    expect(page.textContent).not.toContain('Nueva reserva');
+
+    (page.querySelector('button[aria-controls="mobile-navigation"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(page.querySelectorAll('nav[aria-label="Navegación móvil"] a[href="/laboratorios"]').length).toBe(1);
+    expect(page.querySelectorAll('nav[aria-label="Navegación móvil"] a[href="/mis-reservas"]').length).toBe(1);
+    expect(page.querySelectorAll('nav[aria-label="Navegación móvil"] a[href="/horarios"]').length).toBe(1);
   });
 
   it('clears the session and navigates to login on logout', () => {

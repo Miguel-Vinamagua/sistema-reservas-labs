@@ -34,6 +34,36 @@ describe('SesionesService', () => {
     http.expectOne(`${environment.apiBaseUrl}/sesiones-laboratorio/mias`).flush({ data: [] });
   });
 
+  it('requests available laboratory sessions for students', () => {
+    const session = {
+      id: 'session-1',
+      laboratorio: { id: 'lab-1', nombre: 'Laboratorio A', ubicacion: 'Bloque A' },
+      docente: { id: 'teacher-1', correo: 'docente@utmachala.edu.ec' },
+      materia: 'Física',
+      actividad: 'Práctica',
+      fecha: '2030-01-01T00:00:00.000Z',
+      inicio: '2030-01-01T15:00:00.000Z',
+      fin: '2030-01-01T16:00:00.000Z',
+      capacidadMax: 20,
+      inscritosCount: 8,
+      estado: 'disponible' as const
+    };
+
+    service.getAvailableSessions().subscribe((sessions) => {
+      expect(sessions).toEqual([session]);
+    });
+
+    http.expectOne(`${environment.apiBaseUrl}/sesiones-laboratorio`).flush({ data: [session] });
+  });
+
+  it('requests scheduled sessions for the student timetable', () => {
+    service.getSchedule().subscribe((sessions) => {
+      expect(sessions).toEqual([]);
+    });
+
+    http.expectOne(`${environment.apiBaseUrl}/sesiones-laboratorio/horarios`).flush({ data: [] });
+  });
+
   it('posts new sessions to the laboratory sessions endpoint', () => {
     const payload = {
       laboratorioId: 'lab-1',

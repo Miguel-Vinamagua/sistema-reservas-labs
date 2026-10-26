@@ -2,33 +2,39 @@ import { Injectable, inject } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
 
-export type EstadoReserva = 'activa' | 'cancelada';
+export type EstadoReserva = 'activa' | 'cancelada' | 'finalizada';
 
 export interface Reserva {
   id: string;
-  laboratorio: string;
+  sesionLaboratorio: string;
   usuario: string;
-  inicio: string;
-  fin: string;
-  estado: EstadoReserva;
+  estado: Exclude<EstadoReserva, 'finalizada'>;
 }
 
 export interface ReservaPropia {
   id: string;
+  sesionLaboratorio: string | null;
   laboratorio: {
     id: string;
     nombre: string;
     ubicacion: string;
-  };
-  inicio: string;
-  fin: string;
+  } | null;
+  docente: {
+    id: string;
+    correo: string;
+  } | null;
+  materia: string | null;
+  actividad: string | null;
+  fecha: string | null;
+  inicio: string | null;
+  fin: string | null;
+  capacidadMax: number | null;
+  inscritosCount: number | null;
   estado: EstadoReserva;
 }
 
 export interface NuevaReserva {
-  laboratorioId: string;
-  inicio: string;
-  fin: string;
+  sesionLaboratorioId: string;
 }
 
 interface ApiResponse<T> {

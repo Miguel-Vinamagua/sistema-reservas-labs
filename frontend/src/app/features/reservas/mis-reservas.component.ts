@@ -26,17 +26,26 @@ import { ReservaPropia, ReservasService } from './reservas.service';
             <article class="reservation-item">
               <div class="reservation-heading">
                 <div>
-                  <h2>{{ reservation.laboratorio.nombre }}</h2>
-                  <p>{{ reservation.laboratorio.ubicacion }}</p>
+                  <h2>{{ reservation.laboratorio?.nombre || 'Laboratorio' }}</h2>
+                  @if (reservation.laboratorio?.ubicacion) {
+                    <p>{{ reservation.laboratorio?.ubicacion }}</p>
+                  }
                 </div>
-                <span class="state" [class.cancelled]="reservation.estado === 'cancelada'">
+                <span
+                  class="state"
+                  [class.cancelled]="reservation.estado === 'cancelada'"
+                  [class.finished]="reservation.estado === 'finalizada'"
+                >
                   {{ reservation.estado }}
                 </span>
               </div>
+              <p class="details"><strong>Materia:</strong> {{ reservation.materia || 'No especificada' }}</p>
+              <p class="details"><strong>Actividad:</strong> {{ reservation.actividad || 'No especificada' }}</p>
               <p class="schedule">
-                {{ formatDate(reservation.inicio) }} · {{ formatTime(reservation.inicio) }}–{{ formatTime(reservation.fin) }}
+                {{ formatDate(reservation.inicio) }}
+                · {{ formatTime(reservation.inicio) }}–{{ formatTime(reservation.fin) }}
               </p>
-              @if (reservation.estado === 'activa') {
+              @if (reservation.estado === 'activa' && !isSessionStarted(reservation)) {
                 <button
                   class="cancel-reservation"
                   type="button"
@@ -64,9 +73,9 @@ import { ReservaPropia, ReservasService } from './reservas.service';
     .reservation-item { padding: 20px; border: 1px solid #d1ddd7; border-radius: 4px; background: #fff; }
     .reservation-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
     h2 { margin: 0; font-size: 21px; overflow-wrap: anywhere; }
-    .reservation-heading p, .schedule { margin: 7px 0 0; color: #52635e; font: 14px/1.45 Arial, sans-serif; }
+    .reservation-heading p, .details, .schedule { margin: 7px 0 0; color: #52635e; font: 14px/1.45 Arial, sans-serif; }
     .state { flex: 0 0 auto; padding: 5px 8px; border-radius: 3px; background: #e9f2ee; color: #286455; font: 700 12px Arial, sans-serif; }
-    .state.cancelled { background: #edf0ef; color: #65716d; }
+    .state.cancelled, .state.finished { background: #edf0ef; color: #65716d; }
     button { min-height: 38px; margin-top: 16px; padding: 0 14px; border: 1px solid #a23c32; border-radius: 4px; background: #fff; color: #8b2924; cursor: pointer; font: 700 13px Arial, sans-serif; }
     button:disabled { cursor: wait; opacity: .6; }
     .empty, .error { padding: 18px; border-radius: 4px; font: 15px/1.5 Arial, sans-serif; }
@@ -87,8 +96,15 @@ export class MisReservasComponent implements OnInit {
     this.loadReservations();
   }
 
+  isSessionStarted(reservation: ReservaPropia): boolean {
+    if (!reservation.inicio) {
+      return false;
+    }
+    return Date.parse(reservation.inicio) <= Date.now();
+  }
+
   cancel(reservation: ReservaPropia): void {
-    if (reservation.estado !== 'activa' || !window.confirm('¿Cancelar esta reserva?')) {
+    if (reservation.estado !== 'activa' || this.isSessionStarted(reservation) || !window.confirm('¿Cancelar esta reserva?')) {
       return;
     }
 
@@ -108,12 +124,28 @@ export class MisReservasComponent implements OnInit {
     });
   }
 
-  formatDate(value: string): string {
-    return new Intl.DateTimeFormat('es', { dateStyle: 'medium' }).format(new Date(value));
+  formatDate(value: string | null): string {
+    if (!value) {
+      return 'Fecha no disponible';
+    }
+
+    return new Intl.DateTimeFormat('es-EC', {
+      dateStyle: 'medium',
+      timeZone: 'America/Guayaquil'
+    }).format(new Date(value));
   }
 
-  formatTime(value: string): string {
-    return new Intl.DateTimeFormat('es', { hour: '2-digit', minute: '2-digit' }).format(new Date(value));
+  formatTime(value: string | null): string {
+    if (!value) {
+      return '--:--';
+    }
+
+    return new Intl.DateTimeFormat('es-EC', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+      timeZone: 'America/Guayaquil'
+    }).format(new Date(value));
   }
 
   private loadReservations(): void {
