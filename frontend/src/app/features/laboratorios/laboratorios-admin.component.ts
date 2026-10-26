@@ -14,8 +14,8 @@ const positiveInteger: ValidatorFn = (control) => (
 
 @Component({
   selector: 'app-laboratorios-admin',
-  imports: [ReactiveFormsModule],
-  template:`
+  imports: [ReactiveFormsModule, RouterLink],
+  template: `
     <main class="admin-page">
       <header class="page-header">
         <p class="eyebrow">Administración</p>
@@ -26,7 +26,6 @@ const positiveInteger: ValidatorFn = (control) => (
       @if (!administrator) {
         <p class="notice" role="alert">No tienes permisos para administrar laboratorios.</p>
       } @else {
-        <!-- Sección de edición con diseño de 2 columnas -->
         <section class="editor-container" aria-labelledby="editor-title">
           <div class="form-wrapper">
             <h2 id="editor-title">{{ editingId() ? 'Editar laboratorio' : 'Nuevo laboratorio' }}</h2>
@@ -67,7 +66,6 @@ const positiveInteger: ValidatorFn = (control) => (
             </form>
           </div>
 
-          <!-- Contenedor de la ilustración con tamaño más compacto -->
           <div class="image-wrapper">
             <img 
               src="https://img.magnific.com/vector-gratis/avatar-personaje-empresario-aislado_24877-60111.jpg?semt=ais_hybrid&w=740&q=80" 
@@ -112,8 +110,8 @@ const positiveInteger: ValidatorFn = (control) => (
     :host { display: block; min-height: 100vh; }
     .admin-page { min-height: 100vh; box-sizing: border-box; padding: clamp(24px, 6vw, 64px) max(20px, calc((100vw - 1040px) / 2)); background: #f1f5f2; color: #203a33; font-family: Georgia, 'Times New Roman', serif; }
     .page-header { margin-bottom: 30px; }
-    .page-header a { color: #286455; font: 700 13px Arial, sans-serif; text-decoration: none; }
-    .eyebrow { margin: 24px 0 10px; color: #467366; font: 700 12px Arial, sans-serif; text-transform: uppercase; }
+    .page-header a { color: #286455; font: 700 13px Arial, sans-serif; text-decoration: none; display: inline-block; margin-bottom: 12px; }
+    .eyebrow { margin: 12px 0 10px; color: #467366; font: 700 12px Arial, sans-serif; text-transform: uppercase; }
     h1 { margin: 0; font-size: clamp(32px, 6vw, 50px); line-height: 1.05; }
     .page-header > p:last-child { color: #52635e; font: 15px/1.5 Arial, sans-serif; }
     
@@ -121,7 +119,7 @@ const positiveInteger: ValidatorFn = (control) => (
     
     .editor-container {
       display: grid;
-      grid-template-columns: 1.4fr 0.6fr; /* Da más espacio al formulario y reduce la columna de la imagen */
+      grid-template-columns: 1.4fr 0.6fr;
       gap: 32px;
       align-items: center;
     }
@@ -135,7 +133,7 @@ const positiveInteger: ValidatorFn = (control) => (
 
     .admin-illustration {
       width: 100%;
-      max-width: 200px; /* Reducido a un tamaño más compacto y elegante */
+      max-width: 200px;
       height: auto;
       object-fit: contain;
       filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.03));

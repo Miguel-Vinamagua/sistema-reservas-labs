@@ -86,8 +86,7 @@ export class SesionesService {
   }
 
   getSchedule(): Observable<SesionEstudiante[]> {
-    // CORREGIDO: Apunta a '/sesiones-laboratorio' para evitar el error 404
-    return this.api.get<ApiResponse<SesionEstudiante[]>>('/sesiones-laboratorio').pipe(
+    return this.api.get<ApiResponse<SesionEstudiante[]>>('/sesiones-laboratorio/horarios').pipe(
       map(({ data }) => data)
     );
   }
