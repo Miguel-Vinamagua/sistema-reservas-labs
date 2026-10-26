@@ -18,6 +18,7 @@ const positiveInteger: ValidatorFn = (control) => (
   template: `
     <main class="admin-page">
       <header class="page-header">
+        <a routerLink="/laboratorios" href="/laboratorios"> </a>
         <p class="eyebrow">Administración</p>
         <h1>Administrar laboratorios</h1>
         <p>Gestiona la información de los espacios y su disponibilidad.</p>
