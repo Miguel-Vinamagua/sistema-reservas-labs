@@ -49,14 +49,14 @@
             routerLink="/mis-reservas"
             routerLinkActive="bg-emerald-50/80 font-semibold text-emerald-900"
             ariaCurrentWhenActive="page"
-          >Reservas</a>
+          >Mis reservas</a>
 
           <a
             class="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-emerald-900"
-            routerLink="/reservas/nueva"
+            routerLink="/horarios"
             routerLinkActive="bg-emerald-50/80 font-semibold text-emerald-900"
             ariaCurrentWhenActive="page"
-          >Nueva reserva</a>
+          >Horarios</a>
         }
       }
     </nav>
@@ -121,8 +121,8 @@
           <a class="rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-emerald-900" routerLink="/laboratorios" (click)="menuOpen.set(false)">Laboratorios</a>
         } @else {
           <a class="rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-emerald-900" routerLink="/laboratorios" (click)="menuOpen.set(false)">Laboratorios</a>
-          <a class="rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-emerald-900" routerLink="/mis-reservas" (click)="menuOpen.set(false)">Reservas</a>
-          <a class="rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-emerald-900" routerLink="/reservas/nueva" (click)="menuOpen.set(false)">Nueva reserva</a>
+          <a class="rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-emerald-900" routerLink="/mis-reservas" (click)="menuOpen.set(false)">Mis reservas</a>
+          <a class="rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-emerald-900" routerLink="/horarios" (click)="menuOpen.set(false)">Horarios</a>
         }
         
         <div class="mt-3 flex flex-col gap-3 border-t border-slate-100 pt-4">

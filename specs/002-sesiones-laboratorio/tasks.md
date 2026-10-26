@@ -46,21 +46,21 @@
 
 ### Pruebas primero
 
-- [ ] T401 [P] [US2] Actualizar `frontend/src/app/features/reservas/reserva-form.component.spec.ts` para seleccionar una sesión disponible, mostrar sus datos/cupos y enviar `sesionLaboratorioId`.
-- [ ] T402 [P] [US2] Añadir pruebas de interfaz para sesión llena/no disponible, mensajes de duplicidad/solapamiento y acción de reserva deshabilitada.
-- [ ] T403 [P] [US3] Actualizar `frontend/src/app/features/reservas/mis-reservas.component.spec.ts` para mostrar materia, actividad y estados efectiva `activa`, `cancelada` y `finalizada`, además de cancelar con confirmación.
-- [ ] T404 [P] [US4] Añadir pruebas para la tabla de horarios, campos requeridos, orden cronológico, exclusión al llegar a `fin`, zona `America/Guayaquil` y refresco periódico.
-- [ ] T405 [P] [US2] Actualizar las pruebas de `ReservasService`/`SesionesService` para request/response de reserva ligada a sesión y endpoint de horarios.
-- [ ] T406 [P] [US2] Añadir pruebas de guards/rutas que aseguren que las pantallas de estudiante no exponen el flujo a roles no permitidos.
+- [X] T401 [P] [US2] Añadir pruebas a `frontend/src/app/features/laboratorios/laboratorios.component.spec.ts` para sesiones del docente, datos, cupos libres y reserva por `sesionLaboratorioId`.
+- [X] T402 [P] [US2] Añadir pruebas de interfaz para sesión llena, mensajes de duplicidad/solapamiento y acción de reserva deshabilitada.
+- [X] T403 [P] [US3] Actualizar `frontend/src/app/features/reservas/mis-reservas.component.spec.ts` para mostrar materia, actividad y estados efectivos `activa`, `cancelada` y `finalizada`, además de cancelar con confirmación.
+- [X] T404 [P] [US4] Añadir pruebas para la tabla de horarios, orden cronológico, exclusión al llegar a `fin`, zona `America/Guayaquil`, refresco periódico y al volver a la pestaña.
+- [X] T405 [P] [US2] Actualizar las pruebas de `ReservasService`/`SesionesService` para request/response de reserva ligada a sesión y endpoint de horarios.
+- [X] T406 [P] [US2] Añadir pruebas de guards/rutas que aseguren que las pantallas de estudiante no exponen el flujo a roles no permitidos.
 
 ### Implementación después de pruebas
 
-- [ ] T407 [US2] Reutilizar `sesiones.service.ts` para consultar sesiones disponibles y horarios; tipar los campos contractuales y el estado de sesión.
-- [ ] T408 [US2] Modificar `reserva-form.component.ts` para seleccionar y reservar una sesión, presentar cupos libres y desactivar sesiones no reservables.
-- [ ] T409 [US3] Modificar `reservas.service.ts` y `mis-reservas.component.ts` para enviar el ID de sesión y presentar el historial efectivo con datos completos.
-- [ ] T410 [US4] Añadir la pantalla de horarios únicamente si, tras revisar componentes existentes, no hay una vista reutilizable; mostrar sesiones en curso/futuras, ordenar por inicio y refrescar periódicamente.
-- [ ] T411 [US2] Actualizar `app.routes.ts` y `navbar.component.html` en escritorio y móvil para que el estudiante acceda a Laboratorios, Mis reservas y Horarios.
-- [ ] T412 [US2] Alinear los guards de rutas existentes con los roles permitidos por el contrato.
+- [X] T407 [US2] Reutilizar `sesiones.service.ts` para consultar sesiones disponibles y horarios; tipar los campos contractuales y el estado de sesión.
+- [X] T408 [US2] Reutilizar `laboratorios.component.ts` para mostrar y reservar sesiones; redirigir `/reservas/nueva` al catálogo y conservar el componente legado sin borrarlo.
+- [X] T409 [US3] Modificar `reservas.service.ts` y `mis-reservas.component.ts` para enviar el ID de sesión y presentar el historial efectivo con datos completos.
+- [X] T410 [US4] Añadir `horarios.component.ts` tras confirmar que no había una vista reutilizable; mostrar sesiones en curso/futuras, ordenarlas y refrescarlas periódicamente y al volver a la pestaña.
+- [X] T411 [US2] Actualizar `app.routes.ts` y `navbar.component.html` en escritorio y móvil para que el estudiante acceda a Laboratorios, Mis reservas y Horarios.
+- [X] T412 [US2] Alinear el guard existente con los roles permitidos por el contrato, manteniendo el catálogo de laboratorios accesible al docente.
 
 ## Fase E: Horarios backend y contrato (TDD)
 

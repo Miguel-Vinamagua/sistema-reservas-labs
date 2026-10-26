@@ -15,10 +15,9 @@ const positiveInteger: ValidatorFn = (control) => (
 @Component({
   selector: 'app-laboratorios-admin',
   imports: [ReactiveFormsModule, RouterLink],
-  template: `
+  template:`
     <main class="admin-page">
       <header class="page-header">
-        <a routerLink="/laboratorios">← Volver al catálogo</a>
         <p class="eyebrow">Administración</p>
         <h1>Administrar laboratorios</h1>
         <p>Gestiona la información de los espacios y su disponibilidad.</p>
@@ -27,43 +26,55 @@ const positiveInteger: ValidatorFn = (control) => (
       @if (!administrator) {
         <p class="notice" role="alert">No tienes permisos para administrar laboratorios.</p>
       } @else {
-        <section class="editor" aria-labelledby="editor-title">
-          <h2 id="editor-title">{{ editingId() ? 'Editar laboratorio' : 'Nuevo laboratorio' }}</h2>
-          <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-            <label for="nombre">Nombre</label>
-            <input id="nombre" formControlName="nombre" autocomplete="off" required />
-            @if (form.controls.nombre.touched && form.controls.nombre.invalid) {
-              <p class="field-error">El nombre es obligatorio.</p>
-            }
-
-            <label for="capacidad">Capacidad</label>
-            <input id="capacidad" type="number" min="1" step="1" formControlName="capacidad" required />
-            @if (form.controls.capacidad.touched && form.controls.capacidad.invalid) {
-              <p class="field-error">La capacidad debe ser un entero positivo.</p>
-            }
-
-            <label for="ubicacion">Ubicación</label>
-            <input id="ubicacion" formControlName="ubicacion" autocomplete="off" required />
-            @if (form.controls.ubicacion.touched && form.controls.ubicacion.invalid) {
-              <p class="field-error">La ubicación es obligatoria.</p>
-            }
-
-            @if (errorMessage()) {
-              <p class="form-error" role="alert">{{ errorMessage() }}</p>
-            }
-            @if (successMessage()) {
-              <p class="success" role="status">{{ successMessage() }}</p>
-            }
-
-            <div class="form-actions">
-              <button type="submit" [disabled]="form.invalid || saving()">
-                {{ saving() ? 'Guardando…' : editingId() ? 'Guardar cambios' : 'Crear laboratorio' }}
-              </button>
-              @if (editingId()) {
-                <button class="secondary" type="button" (click)="cancelEdit()">Cancelar edición</button>
+        <!-- Sección de edición con diseño de 2 columnas -->
+        <section class="editor-container" aria-labelledby="editor-title">
+          <div class="form-wrapper">
+            <h2 id="editor-title">{{ editingId() ? 'Editar laboratorio' : 'Nuevo laboratorio' }}</h2>
+            <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+              <label for="nombre">Nombre</label>
+              <input id="nombre" formControlName="nombre" autocomplete="off" required />
+              @if (form.controls.nombre.touched && form.controls.nombre.invalid) {
+                <p class="field-error">El nombre es obligatorio.</p>
               }
-            </div>
-          </form>
+
+              <label for="capacidad">Capacidad</label>
+              <input id="capacidad" type="number" min="1" step="1" formControlName="capacidad" required />
+              @if (form.controls.capacidad.touched && form.controls.capacidad.invalid) {
+                <p class="field-error">La capacidad debe ser un entero positivo.</p>
+              }
+
+              <label for="ubicacion">Ubicación</label>
+              <input id="ubicacion" formControlName="ubicacion" autocomplete="off" required />
+              @if (form.controls.ubicacion.touched && form.controls.ubicacion.invalid) {
+                <p class="field-error">La ubicación es obligatoria.</p>
+              }
+
+              @if (errorMessage()) {
+                <p class="form-error" role="alert">{{ errorMessage() }}</p>
+              }
+              @if (successMessage()) {
+                <p class="success" role="status">{{ successMessage() }}</p>
+              }
+
+              <div class="form-actions">
+                <button type="submit" [disabled]="form.invalid || saving()">
+                  {{ saving() ? 'Guardando…' : editingId() ? 'Guardar cambios' : 'Crear laboratorio' }}
+                </button>
+                @if (editingId()) {
+                  <button class="secondary" type="button" (click)="cancelEdit()">Cancelar edición</button>
+                }
+              </div>
+            </form>
+          </div>
+
+          <!-- Contenedor de la ilustración con tamaño más compacto -->
+          <div class="image-wrapper">
+            <img 
+              src="https://img.magnific.com/vector-gratis/avatar-personaje-empresario-aislado_24877-60111.jpg?semt=ais_hybrid&w=740&q=80" 
+              alt="Ilustración de administración de laboratorios" 
+              class="admin-illustration" 
+            />
+          </div>
         </section>
 
         <section class="inventory" aria-labelledby="inventory-title">
@@ -105,9 +116,33 @@ const positiveInteger: ValidatorFn = (control) => (
     .eyebrow { margin: 24px 0 10px; color: #467366; font: 700 12px Arial, sans-serif; text-transform: uppercase; }
     h1 { margin: 0; font-size: clamp(32px, 6vw, 50px); line-height: 1.05; }
     .page-header > p:last-child { color: #52635e; font: 15px/1.5 Arial, sans-serif; }
-    .editor, .inventory { margin-top: 18px; padding: 22px; border: 1px solid #d1ddd7; border-radius: 5px; background: #fff; }
+    
+    .editor-container, .inventory { margin-top: 18px; padding: 28px; border: 1px solid #d1ddd7; border-radius: 8px; background: #fff; }
+    
+    .editor-container {
+      display: grid;
+      grid-template-columns: 1.4fr 0.6fr; /* Da más espacio al formulario y reduce la columna de la imagen */
+      gap: 32px;
+      align-items: center;
+    }
+
+    .image-wrapper {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .admin-illustration {
+      width: 100%;
+      max-width: 200px; /* Reducido a un tamaño más compacto y elegante */
+      height: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.03));
+    }
+
     h2 { margin: 0 0 16px; font-size: 22px; }
-    form { display: grid; gap: 9px; max-width: 640px; }
+    form { display: grid; gap: 9px; max-width: 100%; }
     label { margin-top: 6px; font: 700 13px Arial, sans-serif; }
     input { width: 100%; min-height: 42px; box-sizing: border-box; padding: 9px 11px; border: 1px solid #aabbb4; border-radius: 4px; color: #203a33; font: 15px Arial, sans-serif; }
     input:focus { outline: 3px solid #b7d8cc; border-color: #467366; }
@@ -126,7 +161,15 @@ const positiveInteger: ValidatorFn = (control) => (
     .field-error, .form-error { margin: 0; border-left: 3px solid #a12f28; background: #fff1ee; color: #8b2924; }
     .success { margin: 0; border-left: 3px solid #286455; background: #e9f2ee; color: #286455; }
     .notice { background: #fff; color: #52635e; }
-    @media (max-width: 700px) { .laboratory-row { grid-template-columns: minmax(0, 1fr) auto; } .row-actions { grid-column: 1 / -1; } }
+    
+    @media (max-width: 900px) { 
+      .editor-container { grid-template-columns: 1fr; } 
+      .image-wrapper { display: none; }
+    }
+    @media (max-width: 700px) { 
+      .laboratory-row { grid-template-columns: minmax(0, 1fr) auto; } 
+      .row-actions { grid-column: 1 / -1; } 
+    }
   `
 })
 export class LaboratoriosAdminComponent implements OnInit {

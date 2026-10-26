@@ -51,6 +51,36 @@ describe('LoginComponent', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/docente');
   });
 
+  it('redirects students to Laboratorios after login by default', () => {
+    auth.login.and.returnValue(of({
+      data: { token: 'jwt', user: { id: '1', correo: 'estudiante@utmachala.edu.ec', rol: 'estudiante' } }
+    }));
+    fixture.componentInstance.form.setValue({
+      correo: 'estudiante@utmachala.edu.ec',
+      password: 'secret'
+    });
+    fixture.componentInstance.returnUrl = null;
+
+    fixture.componentInstance.submit();
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/laboratorios');
+  });
+
+  it('redirects administrators to laboratory administration by default', () => {
+    auth.login.and.returnValue(of({
+      data: { token: 'jwt', user: { id: '1', correo: 'admin@utmachala.edu.ec', rol: 'administrador' } }
+    }));
+    fixture.componentInstance.form.setValue({
+      correo: 'admin@utmachala.edu.ec',
+      password: 'secret'
+    });
+    fixture.componentInstance.returnUrl = null;
+
+    fixture.componentInstance.submit();
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/laboratorios/admin');
+  });
+
   it('shows a safe API error when login fails', () => {
     auth.login.and.returnValue(throwError(() => new Error('failure')));
     errors.getMessage.and.returnValue('No se pudo completar la solicitud.');
