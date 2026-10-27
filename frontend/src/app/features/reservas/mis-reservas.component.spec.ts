@@ -76,7 +76,7 @@ describe('MisReservasComponent', () => {
 
     const page = fixture.nativeElement as HTMLElement;
     expect(page.querySelector('[data-testid="empty-state"]')?.textContent).toContain(
-      'No tienes reservas.'
+      'Aún no has apartado ningún cupo'
     );
   });
 
