@@ -7,23 +7,103 @@ import { RouterLink } from '@angular/router';
   imports: [RouterLink],
   template: `
     <main class="legacy-reservation">
-      <h1>Reserva de cupos</h1>
-      <p>La reserva de cupos se realiza desde Laboratorios.</p>
-      <a routerLink="/laboratorios">Ver sesiones disponibles</a>
+      <div class="reservation-container">
+        <div class="pro-card">
+          <div class="icon-badge">📌</div>
+          <h1>Reserva de cupos</h1>
+          <p class="description">La reserva de cupos se realiza de forma directa desde el catálogo general de laboratorios y sesiones activas.</p>
+          <a class="btn-action" routerLink="/laboratorios">Ver sesiones disponibles</a>
+        </div>
+      </div>
     </main>
   `,
   styles: `
+    :host { display: block; min-height: 100vh; }
+
     .legacy-reservation {
       min-height: 100vh;
       box-sizing: border-box;
-      padding: clamp(28px, 7vw, 72px) max(24px, calc((100vw - 960px) / 2));
-      background: #f1f5f2;
-      color: #203a33;
-      font-family: Georgia, 'Times New Roman', serif;
+      padding: clamp(32px, 5vw, 64px) clamp(20px, 4vw, 48px);
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      color: #0f172a;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    h1 { font-size: clamp(32px, 6vw, 50px); }
-    p, a { font: 15px/1.5 Arial, sans-serif; }
-    a { color: #286455; font-weight: 700; }
+
+    .reservation-container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .pro-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 40px 32px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border-top: 4px solid #2563eb;
+    }
+
+    .icon-badge {
+      font-size: 36px;
+      margin-bottom: 16px;
+      background: #eff6ff;
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(26px, 4vw, 34px);
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+    }
+
+    .description {
+      margin: 0 0 28px;
+      color: #475569;
+      font-size: 15px;
+      line-height: 1.6;
+      max-width: 440px;
+    }
+
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 46px;
+      padding: 0 24px;
+      background: #2563eb;
+      color: white;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14.5px;
+      text-decoration: none;
+      transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+
+    .btn-action:hover {
+      background: #1d4ed8;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn-action:active {
+      transform: translateY(0);
+    }
   `
 })
 export class ReservaFormComponent {}

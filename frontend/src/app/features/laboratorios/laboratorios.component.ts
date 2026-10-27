@@ -14,132 +14,503 @@ import { ReservasService } from '../reservas/reservas.service';
   imports: [RouterLink],
   template: `
     <main class="catalog-page">
-      <header class="catalog-header">
-        <p class="eyebrow">Espacios académicos</p>
-        <h1>Laboratorios</h1>
-        <p class="intro">
-          {{ student
-            ? 'Elige una sesión programada por un docente y reserva tu cupo.'
-            : 'Consulta capacidad y ubicación antes de planear tu sesión.' }}
-        </p>
-        @if (administrator) {
-          <a class="admin-link" routerLink="/laboratorios/admin">Administrar laboratorios</a>
-        }
-      </header>
+      <div class="catalog-container">
+        <header class="catalog-header">
+          <div class="header-titles">
+            <span class="eyebrow">Gestión de Espacios Académicos</span>
+            <h1>Laboratorios y Aulas</h1>
+            <p class="intro">
+              {{ student
+                ? 'Selecciona una sesión programada por la facultad y asegura tu puesto en tiempo real.'
+                : 'Consulta la capacidad, ubicación y disponibilidad operativa de los espacios.' }}
+            </p>
+          </div>
+          @if (administrator) {
+            <a class="admin-link" routerLink="/laboratorios/admin">
+              <span>⚙️</span> Panel de Administración
+            </a>
+          }
+        </header>
 
-      @if (student) {
-        @if (loading()) {
-          <p class="status" role="status">Cargando sesiones…</p>
-        } @else if (errorMessage()) {
-          <p class="error" role="alert">{{ errorMessage() }}</p>
-        } @else if (studentSessions().length === 0) {
-          <p class="empty" data-testid="empty-state">No hay sesiones disponibles.</p>
-        } @else {
-          @if (successMessage()) {
-            <p class="success" role="status">{{ successMessage() }}</p>
-          }
-          @if (reservationError()) {
-            <p class="error" role="alert">{{ reservationError() }}</p>
-          }
-          <section class="catalog-list" aria-label="Sesiones de laboratorio">
-            @for (session of studentSessions(); track session.id) {
-              <article class="laboratory session-card" data-testid="session-item">
-                <div class="laboratory-title">
-                  <h2>{{ session.laboratorio.nombre }}</h2>
-                  <span
-                    class="availability"
-                    [class.full]="isSessionFull(session)"
-                  >{{ isSessionFull(session) ? 'Llena' : 'Disponible' }}</span>
-                </div>
-                <p class="location">Ubicación: {{ session.laboratorio.ubicacion }}</p>
-                <dl class="session-details">
-                  <div><dt>Materia</dt><dd>{{ session.materia }}</dd></div>
-                  <div><dt>Docente</dt><dd>{{ session.docente.correo }}</dd></div>
-                  <div><dt>Actividad</dt><dd>{{ session.actividad }}</dd></div>
-                  <div><dt>Fecha</dt><dd>{{ formatDate(session.inicio) }}</dd></div>
-                  <div><dt>Horario</dt><dd>{{ formatTime(session.inicio) }}–{{ formatTime(session.fin) }}</dd></div>
-                  <div>
-                  <dt>Cupos libres</dt>
-                    <dd>{{ freePlaces(session) }}/{{ session.capacidadMax }}</dd>
+        @if (student) {
+          @if (loading()) {
+            <div class="state-container" role="status">
+              <div class="spinner-pro"></div>
+              <p class="status">Sincronizando sesiones disponibles…</p>
+            </div>
+          } @else if (errorMessage()) {
+            <div class="alert-box error" role="alert">
+              <span class="alert-icon">⚠️</span>
+              <p>{{ errorMessage() }}</p>
+            </div>
+          } @else if (studentSessions().length === 0) {
+            <div class="empty-state" data-testid="empty-state">
+              <div class="empty-icon">📅</div>
+              <h3>Sin sesiones activas</h3>
+              <p>No existen horarios de laboratorio habilitados para reserva en este momento.</p>
+            </div>
+          } @else {
+            @if (successMessage()) {
+              <div class="alert-box success" role="status">
+                <span class="alert-icon">✓</span>
+                <p>{{ successMessage() }}</p>
+              </div>
+            }
+            @if (reservationError()) {
+              <div class="alert-box error" role="alert">
+                <span class="alert-icon">⚠️</span>
+                <p>{{ reservationError() }}</p>
+              </div>
+            }
+            <section class="catalog-grid" aria-label="Sesiones de laboratorio">
+              @for (session of studentSessions(); track session.id) {
+                <article class="pro-card session-card" data-testid="session-item">
+                  <div class="card-top">
+                    <h2>{{ session.laboratorio.nombre }}</h2>
+                    <span
+                      class="status-badge"
+                      [class.full]="isSessionFull(session)"
+                    >{{ isSessionFull(session) ? 'Cupo lleno' : 'Disponible' }}</span>
                   </div>
-                </dl>
-                <button
-  class="reserve-session"
-  type="button"
-  [disabled]="isSessionFull(session) || isReserved(session.id) || reservingSessionId() === session.id"
-  (click)="reserve(session)"
->
-  {{ isReserved(session.id) ? 'Reservado' : (reservingSessionId() === session.id ? 'Reservando…' : 'Reservar cupo') }}
-</button>
-              </article>
-            }
-          </section>
-        }
-      } @else {
-        @if (loading()) {
-          <p class="status" role="status">Cargando laboratorios…</p>
-        } @else if (errorMessage()) {
-          <p class="error" role="alert">{{ errorMessage() }}</p>
-        } @else if (laboratories().length === 0) {
-          <p class="empty" data-testid="empty-state">No hay laboratorios activos disponibles.</p>
+                  
+                  <p class="location-text"><span class="loc-icon">📍</span> {{ session.laboratorio.ubicacion }}</p>
+                  
+                  <div class="session-details-grid">
+                    <div class="detail-item"><span class="dt-label">Materia</span><span class="dd-value">{{ session.materia }}</span></div>
+                    <div class="detail-item"><span class="dt-label">Docente</span><span class="dd-value">{{ session.docente.correo }}</span></div>
+                    <div class="detail-item"><span class="dt-label">Actividad</span><span class="dd-value">{{ session.actividad }}</span></div>
+                    <div class="detail-item"><span class="dt-label">Fecha</span><span class="dd-value">{{ formatDate(session.inicio) }}</span></div>
+                    <div class="detail-item"><span class="dt-label">Horario</span><span class="dd-value">{{ formatTime(session.inicio) }} – {{ formatTime(session.fin) }}</span></div>
+                    <div class="detail-item">
+                      <span class="dt-label">Plazas libres</span>
+                      <span class="dd-value highlight-badge">{{ freePlaces(session) }} / {{ session.capacidadMax }}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    class="btn-action"
+                    type="button"
+                    [disabled]="isSessionFull(session) || isReserved(session.id) || reservingSessionId() === session.id"
+                    (click)="reserve(session)"
+                  >
+                    @if (reservingSessionId() === session.id) {
+                      <span class="spinner-small"></span>
+                      <span>Procesando reserva…</span>
+                    } @else if (isReserved(session.id)) {
+                      <span>✓ Reservado con éxito</span>
+                    } @else {
+                      <span>Reservar cupo</span>
+                    }
+                  </button>
+                </article>
+              }
+            </section>
+          }
         } @else {
-          <section class="catalog-list" aria-label="Laboratorios activos">
-            @for (laboratory of laboratories(); track laboratory.id) {
-              <article class="laboratory" data-testid="laboratory-item">
-                <div class="laboratory-title">
-                  <h2>{{ laboratory.nombre }}</h2>
-                  <span class="capacity">{{ laboratory.capacidad }} personas</span>
-                </div>
-                <p class="location"><span aria-hidden="true">⌖</span> {{ laboratory.ubicacion }}</p>
-                <span
-                  class="availability"
-                  [class.occupied]="isOccupied(laboratory)"
-                  [attr.aria-label]="isOccupied(laboratory) ? 'Ocupado / En Sesión' : 'Disponible'"
-                >
-                  {{ isOccupied(laboratory) ? 'Ocupado / En Sesión' : 'Disponible' }}
-                </span>
-              </article>
-            }
-          </section>
+          @if (loading()) {
+            <div class="state-container" role="status">
+              <div class="spinner-pro"></div>
+              <p class="status">Cargando infraestructura de laboratorios…</p>
+            </div>
+          } @else if (errorMessage()) {
+            <div class="alert-box error" role="alert">
+              <span class="alert-icon">⚠️</span>
+              <p>{{ errorMessage() }}</p>
+            </div>
+          } @else if (laboratories().length === 0) {
+            <div class="empty-state" data-testid="empty-state">
+              <div class="empty-icon">🏛️</div>
+              <h3>Infraestructura no disponible</h3>
+              <p>No se registran laboratorios activos operativos actualmente.</p>
+            </div>
+          } @else {
+            <section class="catalog-grid" aria-label="Laboratorios activos">
+              @for (laboratory of laboratories(); track laboratory.id) {
+                <article class="pro-card" data-testid="laboratory-item">
+                  <div class="card-top">
+                    <h2>{{ laboratory.nombre }}</h2>
+                    <span class="capacity-badge">{{ laboratory.capacidad }} puestos</span>
+                  </div>
+                  <p class="location-text"><span class="loc-icon">📍</span> {{ laboratory.ubicacion }}</p>
+                  
+                  <div class="card-footer-info">
+                    <span
+                      class="status-badge"
+                      [class.occupied]="isOccupied(laboratory)"
+                      [attr.aria-label]="isOccupied(laboratory) ? 'Ocupado / En Sesión' : 'Disponible'"
+                    >
+                      {{ isOccupied(laboratory) ? 'Ocupado / En Sesión' : 'Disponible' }}
+                    </span>
+                  </div>
+                </article>
+              }
+            </section>
+          }
         }
-      }
+      </div>
     </main>
   `,
   styles: `
     :host { display: block; min-height: 100vh; }
+    
     .catalog-page {
       min-height: 100vh;
       box-sizing: border-box;
-      padding: clamp(28px, 7vw, 76px) max(24px, calc((100vw - 1040px) / 2));
-      background: #f1f5f2;
-      color: #203a33;
-      font-family: Georgia, 'Times New Roman', serif;
+      padding: clamp(32px, 5vw, 64px) clamp(20px, 4vw, 48px);
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      color: #0f172a;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
-    .catalog-header { max-width: 660px; margin-bottom: 34px; }
-    .eyebrow { margin: 0 0 12px; color: #467366; font: 700 12px/1.4 Arial, sans-serif; text-transform: uppercase; }
-    h1 { margin: 0; font-size: clamp(34px, 6vw, 56px); line-height: 1.05; }
-    .intro { margin: 14px 0 0; color: #52635e; font: 16px/1.5 Arial, sans-serif; }
-    .admin-link { display: inline-flex; min-height: 38px; align-items: center; margin-top: 16px; padding: 0 12px; border: 1px solid #aabbb4; border-radius: 4px; color: #315b4e; font: 700 12px Arial, sans-serif; text-decoration: none; }
-    .catalog-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px; }
-    .laboratory { min-width: 0; padding: 20px; border: 1px solid #d1ddd7; border-left: 4px solid #46806f; border-radius: 4px; background: #fff; }
-    .laboratory-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-    h2 { min-width: 0; margin: 0; font-size: 21px; line-height: 1.2; overflow-wrap: anywhere; }
-    .capacity { flex: 0 0 auto; padding: 5px 7px; border-radius: 3px; background: #e9f2ee; color: #315b4e; font: 700 12px/1.3 Arial, sans-serif; }
-    .location { margin: 16px 0 0; color: #52635e; font: 14px/1.45 Arial, sans-serif; overflow-wrap: anywhere; }
-    .location span { color: #467366; }
-    .availability { display: inline-flex; margin-top: 14px; padding: 5px 9px; border-radius: 999px; background: #e9f2ee; color: #286455; font: 700 12px/1.3 Arial, sans-serif; }
-    .availability.occupied { background: #fff1ee; color: #a12f28; }
-    .availability.full { background: #edf0ef; color: #65716d; }
-    .session-card { border-left-color: #46806f; }
-    .session-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; margin: 18px 0 0; font: 14px/1.4 Arial, sans-serif; }
-    .session-details dt { color: #65716d; font-size: 12px; font-weight: 700; }
-    .session-details dd { margin: 3px 0 0; color: #203a33; overflow-wrap: anywhere; }
-    .reserve-session { min-height: 42px; margin-top: 18px; padding: 0 16px; border: 0; border-radius: 4px; background: #286455; color: white; cursor: pointer; font: 700 13px Arial, sans-serif; }
-    .reserve-session:disabled { cursor: not-allowed; opacity: .55; }
-    .success { margin-bottom: 14px; padding: 12px; border-left: 3px solid #286455; background: #e9f2ee; color: #286455; font: 14px/1.45 Arial, sans-serif; }
-    .status, .empty, .error { padding: 18px; border-radius: 4px; font: 15px/1.5 Arial, sans-serif; }
-    .status, .empty { background: #fff; color: #52635e; }
-    .error { border-left: 3px solid #a12f28; background: #fff1ee; color: #8b2924; }
+
+    .catalog-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .catalog-header { 
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 20px;
+      margin-bottom: 40px; 
+      border-bottom: 1.5px solid #e2e8f0;
+      padding-bottom: 24px;
+    }
+
+    .header-titles {
+      max-width: 700px;
+    }
+
+    .eyebrow { 
+      display: inline-block;
+      margin: 0 0 10px; 
+      padding: 4px 12px;
+      background: #eff6ff;
+      color: #1d4ed8; 
+      font-weight: 700;
+      font-size: 11px; 
+      text-transform: uppercase; 
+      letter-spacing: 0.06em;
+      border-radius: 20px;
+    }
+
+    h1 { 
+      margin: 0; 
+      font-size: clamp(30px, 5vw, 46px); 
+      font-weight: 800;
+      line-height: 1.1; 
+      color: #0f172a;
+      letter-spacing: -0.03em;
+    }
+
+    .intro { 
+      margin: 10px 0 0; 
+      color: #475569; 
+      font-size: 15px; 
+      line-height: 1.5; 
+    }
+
+    .admin-link { 
+      display: inline-flex; 
+      height: 42px; 
+      align-items: center; 
+      gap: 8px;
+      padding: 0 16px; 
+      border: 1.5px solid #cbd5e1; 
+      border-radius: 8px; 
+      color: #1e293b; 
+      font-weight: 600;
+      font-size: 13px; 
+      text-decoration: none; 
+      background: #ffffff;
+      transition: all 0.2s ease;
+    }
+
+    .admin-link:hover {
+      background: #0f172a;
+      color: white;
+      border-color: #0f172a;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+      transform: translateY(-1px);
+    }
+
+    .catalog-grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); 
+      gap: 20px; 
+    }
+
+    .pro-card { 
+      position: relative;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px; 
+      padding: 24px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+
+    .pro-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+      border-color: #94a3b8;
+    }
+
+    .session-card {
+      border-top: 4px solid #2563eb;
+    }
+
+    .card-top { 
+      display: flex; 
+      align-items: flex-start; 
+      justify-content: space-between; 
+      gap: 12px; 
+    }
+
+    h2 { 
+      margin: 0; 
+      font-size: 19px; 
+      font-weight: 700;
+      line-height: 1.3; 
+      color: #0f172a;
+      overflow-wrap: anywhere; 
+    }
+
+    .capacity-badge { 
+      flex: 0 0 auto; 
+      padding: 4px 10px; 
+      border-radius: 20px; 
+      background: #f1f5f9; 
+      color: #334155; 
+      font-weight: 600;
+      font-size: 12px; 
+    }
+
+    .location-text { 
+      margin: 10px 0 16px; 
+      color: #64748b; 
+      font-size: 13.5px; 
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-wrap: anywhere; 
+    }
+
+    .loc-icon {
+      font-size: 12px;
+    }
+
+    .status-badge { 
+      display: inline-flex; 
+      padding: 4px 10px; 
+      border-radius: 20px; 
+      background: #ecfdf5; 
+      color: #047857; 
+      font-weight: 700;
+      font-size: 11.5px; 
+      letter-spacing: 0.02em;
+    }
+
+    .status-badge.occupied { 
+      background: #fef2f2; 
+      color: #dc2626; 
+    }
+
+    .status-badge.full { 
+      background: #f1f5f9; 
+      color: #64748b; 
+    }
+
+    .card-footer-info {
+      margin-top: auto;
+      padding-top: 14px;
+      border-top: 1px solid #f1f5f9;
+    }
+
+    .session-details-grid { 
+      display: grid; 
+      grid-template-columns: repeat(2, minmax(0, 1fr)); 
+      gap: 12px 16px; 
+      margin: 14px 0 20px; 
+      background: #f8fafc;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid #f1f5f9;
+    }
+
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .dt-label { 
+      color: #64748b; 
+      font-size: 11px; 
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .dd-value { 
+      margin: 0; 
+      color: #1e293b; 
+      font-size: 13.5px; 
+      font-weight: 500;
+      overflow-wrap: anywhere; 
+    }
+
+    .highlight-badge {
+      font-weight: 700;
+      color: #2563eb;
+    }
+
+    .btn-action { 
+      height: 44px; 
+      width: 100%;
+      margin-top: auto; 
+      padding: 0 16px; 
+      border: 0; 
+      border-radius: 8px; 
+      background: #2563eb; 
+      color: white; 
+      cursor: pointer; 
+      font-weight: 600;
+      font-size: 13.5px; 
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+
+    .btn-action:hover:not(:disabled) {
+      background: #1d4ed8;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .btn-action:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .btn-action:disabled { 
+      cursor: not-allowed; 
+      opacity: 0.55; 
+      box-shadow: none;
+    }
+
+    /* Alertas y estados mejorados */
+    .alert-box { 
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px; 
+      padding: 14px 18px; 
+      border-radius: 10px; 
+      font-size: 14px; 
+      font-weight: 500;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+    }
+
+    .alert-box p {
+      margin: 0;
+    }
+
+    .alert-box.success { 
+      border-left: 4px solid #059669; 
+      background: #ecfdf5; 
+      color: #065f46; 
+    }
+
+    .alert-box.error { 
+      border-left: 4px solid #dc2626; 
+      background: #fef2f2; 
+      color: #991b1b; 
+    }
+
+    .alert-icon {
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .state-container, .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      background: #ffffff;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+    }
+
+    .state-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .status {
+      margin: 0;
+      color: #64748b;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .empty-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+    }
+
+    .empty-state h3 {
+      margin: 0 0 6px;
+      font-size: 18px;
+      color: #0f172a;
+    }
+
+    .empty-state p {
+      margin: 0;
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    /* Spinners elegantes */
+    .spinner-pro {
+      width: 32px;
+      height: 32px;
+      border: 3px solid rgba(37, 99, 235, 0.15);
+      border-radius: 50%;
+      border-top-color: #2563eb;
+      animation: spin 0.7s linear infinite;
+    }
+
+    .spinner-small {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+      .catalog-grid {
+        grid-template-columns: 1fr;
+      }
+      .catalog-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
   `
 })
 export class LaboratoriosComponent implements OnInit {
