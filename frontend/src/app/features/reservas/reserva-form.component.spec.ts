@@ -18,8 +18,7 @@ describe('ReservaFormComponent legacy route', () => {
   it('directs students to the Laboratorios tab to reserve an existing session', () => {
     const page = fixture.nativeElement as HTMLElement;
 
-    expect(page.textContent).toContain('La reserva de cupos se realiza desde Laboratorios.');
-    expect(page.querySelector('a[href="/laboratorios"]')).not.toBeNull();
+expect(page.textContent).toContain('La reserva de cupos se realiza de forma directa desde el catálogo general');    expect(page.querySelector('a[href="/laboratorios"]')).not.toBeNull();
   });
 
   it('does not display the obsolete laboratory and free-form time reservation fields', () => {

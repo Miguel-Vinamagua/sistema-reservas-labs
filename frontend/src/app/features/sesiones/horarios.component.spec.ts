@@ -81,7 +81,7 @@ describe('HorariosComponent', () => {
     expect(rows[0].textContent).toContain(fixture.componentInstance.formatDate(inProgress.inicio));
     expect(rows[0].textContent).toContain('docente@utmachala.edu.ec');
     expect(rows[0].textContent).toContain('Práctica de óptica');
-    expect(rows[0].textContent).toContain('4/20');
+    expect(rows[0].textContent).toContain('4 / 20');
     expect(page.textContent).toContain('Ubicación');
     expect(page.textContent).toContain('Materia');
     expect(page.textContent).toContain('Fecha');

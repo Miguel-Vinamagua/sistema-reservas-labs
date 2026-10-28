@@ -9,80 +9,241 @@ import { SesionEstudiante, SesionesService } from './sesiones.service';
   standalone: true,
   template: `
     <main class="schedule-page">
-      <header class="page-header">
-        <p class="eyebrow">Agenda académica</p>
-        <h1>Horarios</h1>
-        <p>Sesiones en curso y próximas de todos los docentes.</p>
-      </header>
+      <div class="schedule-container">
+        <header class="page-header">
+          <span class="eyebrow">Agenda académica</span>
+          <h1>Horarios</h1>
+          <p class="intro">Sesiones en curso y próximas programadas en la infraestructura institucional.</p>
+        </header>
 
-      @if (loading()) {
-        <p class="notice" role="status">Cargando horarios…</p>
-      } @else if (errorMessage()) {
-        <p class="error" role="alert">{{ errorMessage() }}</p>
-      } @else if (visibleSessions().length === 0) {
-        <p class="notice" data-testid="empty-state">No hay sesiones disponibles.</p>
-      } @else {
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Fecha</th>
-                <th scope="col">Hora de inicio</th>
-                <th scope="col">Hora de fin</th>
-                <th scope="col">Laboratorio</th>
-                <th scope="col">Ubicación</th>
-                <th scope="col">Materia</th>
-                <th scope="col">Docente</th>
-                <th scope="col">Actividad</th>
-                <th scope="col">Cupos</th>
-                <th scope="col">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (session of visibleSessions(); track session.id) {
+        @if (loading()) {
+          <div class="state-container" role="status">
+            <div class="spinner-pro"></div>
+            <p class="status">Sincronizando horarios institucionales…</p>
+          </div>
+        } @else if (errorMessage()) {
+          <div class="alert-box error" role="alert">
+            <span class="alert-icon">⚠️</span>
+            <p>{{ errorMessage() }}</p>
+          </div>
+        } @else if (visibleSessions().length === 0) {
+          <div class="empty-state" data-testid="empty-state">
+            <div class="empty-icon">📅</div>
+            <h3>Sin sesiones activas</h3>
+            <p>No hay horarios ni sesiones registradas para mostrar en este momento.</p>
+          </div>
+        } @else {
+          <div class="table-container-pro">
+            <table>
+              <thead>
                 <tr>
-                  <td>{{ formatDate(session.inicio) }}</td>
-                  <td>{{ formatTime(session.inicio) }}</td>
-                  <td>{{ formatTime(session.fin) }}</td>
-                  <td>{{ session.laboratorio.nombre }}</td>
-                  <td>{{ session.laboratorio.ubicacion }}</td>
-                  <td>{{ session.materia }}</td>
-                  <td>{{ session.docente.correo }}</td>
-                  <td>{{ session.actividad }}</td>
-                  <td>{{ session.inscritosCount }}/{{ session.capacidadMax }}</td>
-                  <td>
-                    <span
-                      class="state"
-                      [class.current]="statusLabel(session) === 'En curso'"
-                      [class.full]="session.estado === 'llena'"
-                    >{{ statusLabel(session) }}</span>
-                  </td>
+                  <th scope="col">Fecha</th>
+                  <th scope="col">Hora inicio</th>
+                  <th scope="col">Hora fin</th>
+                  <th scope="col">Laboratorio</th>
+                  <th scope="col">Ubicación</th>
+                  <th scope="col">Materia</th>
+                  <th scope="col">Docente</th>
+                  <th scope="col">Actividad</th>
+                  <th scope="col">Cupos</th>
+                  <th scope="col">Estado</th>
                 </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
+              </thead>
+              <tbody>
+                @for (session of visibleSessions(); track session.id) {
+                  <tr>
+                    <td class="fw-medium">{{ formatDate(session.inicio) }}</td>
+                    <td>{{ formatTime(session.inicio) }}</td>
+                    <td>{{ formatTime(session.fin) }}</td>
+                    <td class="fw-bold text-dark">{{ session.laboratorio.nombre }}</td>
+                    <td>{{ session.laboratorio.ubicacion }}</td>
+                    <td>{{ session.materia }}</td>
+                    <td class="text-muted">{{ session.docente.correo }}</td>
+                    <td>{{ session.actividad }}</td>
+                    <td><span class="badge-count">{{ session.inscritosCount }} / {{ session.capacidadMax }}</span></td>
+                    <td>
+                      <span
+                        class="state-badge-table"
+                        [class.current]="statusLabel(session) === 'En curso'"
+                        [class.full]="session.estado === 'llena'"
+                        [class.open]="statusLabel(session) === 'Disponible'"
+                      >{{ statusLabel(session) }}</span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
     </main>
   `,
   styles: `
     :host { display: block; min-height: 100vh; }
-    .schedule-page { min-height: 100vh; box-sizing: border-box; padding: clamp(28px, 6vw, 68px) max(20px, calc((100vw - 1280px) / 2)); background: #f1f5f2; color: #203a33; font-family: Georgia, 'Times New Roman', serif; }
-    .page-header { margin-bottom: 30px; }
-    .eyebrow { margin: 0 0 12px; color: #467366; font: 700 12px/1.4 Arial, sans-serif; text-transform: uppercase; }
-    h1 { margin: 0; font-size: clamp(34px, 6vw, 54px); line-height: 1.05; }
-    .page-header > p:last-child { color: #52635e; font: 15px/1.5 Arial, sans-serif; }
-    .table-container { overflow-x: auto; border: 1px solid #d1ddd7; border-radius: 4px; background: #fff; }
-    table { width: 100%; min-width: 1040px; border-collapse: collapse; font: 13px/1.45 Arial, sans-serif; }
-    th, td { padding: 12px 14px; border-bottom: 1px solid #e2e9e5; text-align: left; vertical-align: top; }
-    th { background: #e9f2ee; color: #315b4e; font-weight: 700; white-space: nowrap; }
+    
+    .schedule-page { 
+      min-height: 100vh; 
+      box-sizing: border-box; 
+      padding: clamp(32px, 5vw, 64px) clamp(20px, 4vw, 48px); 
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); 
+      color: #0f172a; 
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+    }
+
+    .schedule-container {
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+
+    .page-header { 
+      margin-bottom: 40px; 
+      border-bottom: 1.5px solid #e2e8f0;
+      padding-bottom: 24px;
+    }
+
+    .eyebrow { 
+      display: inline-block;
+      margin: 0 0 10px; 
+      padding: 4px 12px;
+      background: #eff6ff;
+      color: #1d4ed8; 
+      font-weight: 700;
+      font-size: 11px; 
+      text-transform: uppercase; 
+      letter-spacing: 0.06em;
+      border-radius: 20px;
+    }
+
+    h1 { 
+      margin: 0; 
+      font-size: clamp(30px, 5vw, 46px); 
+      font-weight: 800;
+      line-height: 1.1; 
+      color: #0f172a;
+      letter-spacing: -0.03em;
+    }
+
+    .intro { 
+      margin: 10px 0 0; 
+      color: #475569; 
+      font-size: 15px; 
+    }
+
+    .table-container-pro { 
+      overflow-x: auto; 
+      border: 1px solid #e2e8f0; 
+      border-radius: 14px; 
+      background: #ffffff;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
+    }
+
+    table { 
+      width: 100%; 
+      min-width: 1080px; 
+      border-collapse: collapse; 
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+
+    th, td { 
+      padding: 16px 18px; 
+      border-bottom: 1px solid #f1f5f9; 
+      text-align: left; 
+      vertical-align: middle; 
+    }
+
+    th { 
+      background: #f8fafc; 
+      color: #334155; 
+      font-weight: 700; 
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap; 
+      border-bottom: 2px solid #e2e8f0;
+    }
+
     tbody tr:last-child td { border-bottom: 0; }
-    .state { display: inline-flex; padding: 4px 8px; border-radius: 999px; background: #e9f2ee; color: #286455; font-size: 12px; font-weight: 700; white-space: nowrap; }
-    .state.current { background: #d9eee5; color: #176348; }
-    .state.full { background: #edf0ef; color: #65716d; }
-    .notice, .error { padding: 18px; border-radius: 4px; font: 15px/1.5 Arial, sans-serif; }
-    .notice { background: #fff; color: #52635e; }
-    .error { border-left: 3px solid #a12f28; background: #fff1ee; color: #8b2924; }
+    tbody tr:hover { background: #fafdfc; }
+
+    .fw-medium { font-weight: 500; }
+    .fw-bold { font-weight: 600; color: #0f172a; }
+    .text-muted { color: #64748b; }
+
+    .badge-count {
+      display: inline-block;
+      padding: 3px 8px;
+      background: #f1f5f9;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      color: #334155;
+    }
+
+    .state-badge-table { 
+      display: inline-flex; 
+      padding: 4px 10px; 
+      border-radius: 20px; 
+      background: #ecfdf5; 
+      color: #047857; 
+      font-size: 11.5px; 
+      font-weight: 700; 
+      white-space: nowrap; 
+      letter-spacing: 0.02em;
+    }
+
+    .state-badge-table.current { background: #eff6ff; color: #1d4ed8; }
+    .state-badge-table.full { background: #fef3c7; color: #b45309; }
+    .state-badge-table.open { background: #ecfdf5; color: #047857; }
+
+    .alert-box { 
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .alert-box p { margin: 0; }
+    .alert-box.error { border-left: 4px solid #dc2626; background: #fef2f2; color: #991b1b; }
+    .alert-icon { font-weight: bold; }
+
+    .state-container, .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      background: #ffffff;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+    }
+
+    .state-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .status { margin: 0; color: #64748b; font-size: 15px; font-weight: 500; }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state h3 { margin: 0 0 6px; font-size: 18px; color: #0f172a; }
+    .empty-state p { margin: 0; color: #64748b; font-size: 14px; }
+
+    .spinner-pro {
+      width: 32px;
+      height: 32px;
+      border: 3px solid rgba(37, 99, 235, 0.15);
+      border-radius: 50%;
+      border-top-color: #2563eb;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   `
 })
 export class HorariosComponent implements OnInit {

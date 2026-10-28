@@ -182,7 +182,7 @@ describe('LaboratoriosComponent', () => {
     expect(page.textContent).toContain('Física');
     expect(page.textContent).toContain('Práctica de óptica');
     expect(page.textContent).toContain('docente@utmachala.edu.ec');
-    expect(page.textContent).toContain('12/20');
+    expect(page.textContent).toContain('12 / 20');
     expect(page.textContent).toContain(fixture.componentInstance.formatDate(availableSession.inicio));
     expect(page.textContent).toContain('10:00');
 
@@ -194,7 +194,7 @@ describe('LaboratoriosComponent', () => {
       sesionLaboratorioId: availableSession.id
     });
     expect(page.textContent).toContain('Reserva realizada correctamente.');
-    expect(page.textContent).toContain('11/20');
+    expect(page.textContent).toContain('11 / 20');
   });
 
   it('shows full sessions with reservation disabled', () => {

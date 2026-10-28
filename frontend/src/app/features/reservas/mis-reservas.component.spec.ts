@@ -64,9 +64,9 @@ describe('MisReservasComponent', () => {
     expect(page.textContent).toContain('Física');
     expect(page.textContent).toContain('Práctica de óptica');
     expect(page.textContent).toContain(fixture.componentInstance.formatDate(activeReservation.inicio));
-    expect(page.textContent).toContain('activa');
-    expect(page.textContent).toContain('cancelada');
-    expect(page.textContent).toContain('finalizada');
+    expect(page.textContent).toContain('Activa');
+    expect(page.textContent).toContain('Cancelada');
+    expect(page.textContent).toContain('Finalizada');
     expect(fixture.componentInstance.formatTime(activeReservation.inicio)).toBe('10:00');
     expect(page.querySelectorAll('button.cancel-reservation').length).toBe(1);
   });

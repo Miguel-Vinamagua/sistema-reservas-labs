@@ -89,7 +89,7 @@ describe('SesionesDocenteComponent', () => {
     const laboratorySelect = page.querySelector('#laboratorio') as HTMLSelectElement;
     const subjectSelect = page.querySelector('#materia') as HTMLSelectElement;
 
-    expect(laboratorySelect.textContent).toContain('24 personas');
+    expect(laboratorySelect.textContent).toContain('24 puestos');
     expect(laboratorySelect.textContent).toContain('Bloque A, piso 2');
     expect(subjectSelect.textContent).toContain('Física · FIS-101');
   });
