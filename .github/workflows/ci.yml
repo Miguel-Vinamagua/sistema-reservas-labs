@@ -1,57 +1,88 @@
 name: CI
 
+# Define cuándo se va a ejecutar este flujo de trabajo (Workflow)
 on:
   pull_request:
-    branches: [main]
+    branches: [main] # Se ejecuta cuando abres o actualizas un PR hacia la rama main
   push:
-    branches: [main]
+    branches: [main] # Se ejecuta cuando haces un commit/push directamente en la rama main
 
+# Permisos de seguridad para el token de GitHub Actions (en este caso, solo lectura del código)
 permissions:
   contents: read
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # TRABAJO 1: BACKEND (Pruebas con Node.js y MongoDB en Replica Set)
+  # ---------------------------------------------------------------------------
   backend:
     name: backend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # Corre en una máquina virtual limpia con Ubuntu
     env:
       MONGODB_URI: mongodb://localhost:27017/reservas_test?replicaSet=rs0
       JWT_SECRET: secreto-solo-para-pruebas-ci
       NODE_ENV: test
     defaults:
       run:
-        working-directory: backend
+        working-directory: backend # Define que todos los comandos 'run' se ejecutan dentro de la carpeta 'backend'
     steps:
+      # 1. Descarga el código del repositorio en el servidor de pruebas
       - uses: actions/checkout@v4
 
+      # 2. Levanta MongoDB mediante Docker y lo configura como un Replica Set (necesario para transacciones)
       - name: Iniciar MongoDB con replica set
-        working-directory: .
+        working-directory: . # Sale a la raíz para ejecutar comandos de Docker globalmente
         run: |
+          # Levanta un contenedor Docker con MongoDB 7 expuesto en el puerto 27017
           docker run -d --name mongo -p 27017:27017 mongo:7 --replSet rs0 --bind_ip_all
+          
+          # Espera activamente (haciendo pings) hasta que el servicio de MongoDB responda
           until docker exec mongo mongosh --quiet --eval "db.adminCommand({ping:1})" >/dev/null 2>&1; do sleep 2; done
+          
+          # Inicializa el Replica Set con un único nodo local ('rs0')
           docker exec mongo mongosh --quiet --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"localhost:27017"}]})'
+          
+          # Espera a que el nodo esté completamente listo y acepte escrituras (Primary)
           until [ "$(docker exec mongo mongosh --quiet --eval 'db.hello().isWritablePrimary')" = "true" ]; do sleep 2; done
 
+      # 3. Configura el entorno de Node.js versión 22 y activa caché para agilizar instalaciones futuras
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: backend/package-lock.json
+          
+      # 4. Instala las dependencias del backend de forma limpia usando el package-lock.json
       - run: npm ci
+      
+      # 5. Ejecuta la suite de pruebas automatizadas del backend
       - run: npm test
 
+  # ---------------------------------------------------------------------------
+  # TRABAJO 2: FRONTEND (Instalación, validación y compilación)
+  # ---------------------------------------------------------------------------
   frontend:
     name: frontend
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: frontend
+        working-directory: frontend # Define que los comandos correrán dentro de la carpeta 'frontend'
     steps:
+      # 1. Descarga el código fuente
       - uses: actions/checkout@v4
+      
+      # 2. Configura Node.js versión 22 con caché para el frontend
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+          
+      # 3. Instala las dependencias del frontend de forma limpia
       - run: npm ci
+      
+      # 4. Paso temporal que salta la ejecución de tests del cliente (muestra un mensaje en consola)
       - run: echo "Frontend tests skipped"
+      
+      # 5. Compila el proyecto de frontend para verificar que no hay errores de empaquetado o sintaxis
       - run: npm run build
